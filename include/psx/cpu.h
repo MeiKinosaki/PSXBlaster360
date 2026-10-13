@@ -2,6 +2,9 @@
 #define PSX_CPU_H
 
 #include <stdint.h>
+#include "psx/memory.h"
+
+#define PSX_CPU_VERSION "v3.6.16b"
 
 typedef struct psx_cpu {
     uint32_t gpr[32];
@@ -15,11 +18,17 @@ typedef struct psx_cpu {
     uint64_t instructions_retired;
 } psx_cpu_t;
 
-/* Initializes the architectural state used by the initial CPU core. */
-void psx_cpu_reset(psx_cpu_t *cpu);
+typedef enum psx_cpu_step_result {
+    PSX_CPU_STEP_OK = 0,
+    PSX_CPU_STEP_MEMORY_FAULT,
+    PSX_CPU_STEP_UNSUPPORTED_INSTRUCTION
+} psx_cpu_step_result_t;
 
-/* MIPS R3000A sign-extension helpers used by instruction decoding. */
+void psx_cpu_reset(psx_cpu_t *cpu);
 int32_t psx_cpu_sign_extend16(uint16_t immediate);
 int32_t psx_cpu_sign_extend8(uint8_t immediate);
+
+/* Executes one MIPS R3000A instruction. Branch delay slots are modeled. */
+psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory);
 
 #endif
