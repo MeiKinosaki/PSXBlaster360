@@ -1,0 +1,61 @@
+name: XEX toolchain diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/xex-toolchain-diagnostic.yml"
+      - "docs/DEFAULT_XEX_PIPELINE.md"
+      - "README.md"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Inspect repository and XEX toolchain
+        shell: bash
+        run: |
+          set -u
+          mkdir -p build-diagnostics
+          {
+            echo "PSXBlaster360 v3.6.15b — XEX toolchain diagnostic"
+            echo "UTC: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo
+            echo "Repository files:"
+            find . -maxdepth 3 -type f -not -path './.git/*' | sort
+            echo
+            echo "Candidate tools:"
+            for tool in xenon-gcc xextool xextool xex_builder; do
+              if command -v "$tool" >/dev/null 2>&1; then
+                printf '%s: FOUND (%s)\n' "$tool" "$(command -v "$tool")"
+              else
+                printf '%s: NOT FOUND\n' "$tool"
+              fi
+            done
+            echo
+            if find . -type f -name 'default.xex' -not -path './.git/*' | grep -q .; then
+              echo "Existing default.xex: found (not automatically trusted; validate it separately)"
+            else
+              echo "Existing default.xex: NOT FOUND"
+            fi
+            if find . -type f \( -name '*.c' -o -name '*.cpp' -o -name '*.S' \) -not -path './.git/*' | grep -q .; then
+              echo "Native source files: found"
+            else
+              echo "Native source files: NOT FOUND"
+            fi
+          } | tee build-diagnostics/xex-toolchain-report.txt
+
+      - name: Upload diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: psxblaster360-xex-toolchain-diagnostic
+          path: build-diagnostics/xex-toolchain-report.txt
+          if-no-files-found: error
+          retention-days: 14
