@@ -13,8 +13,8 @@ $(BUILD_DIR):
 $(BUILD_DIR)/test_memory: src/core/memory.c tests/test_memory.c include/psx/memory.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) src/core/memory.c tests/test_memory.c -o $@
 
-$(BUILD_DIR)/test_cpu: src/core/cpu.c tests/test_cpu.c include/psx/cpu.h | $(BUILD_DIR)
-	$(CC) $(CPPFLAGS) $(CFLAGS) src/core/cpu.c tests/test_cpu.c -o $@
+$(BUILD_DIR)/test_cpu: src/core/cpu.c src/core/memory.c tests/test_cpu.c include/psx/cpu.h include/psx/memory.h | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) src/core/cpu.c src/core/memory.c tests/test_cpu.c -o $@
 
 host-test: $(BUILD_DIR)/test_memory $(BUILD_DIR)/test_cpu
 	./$(BUILD_DIR)/test_memory
