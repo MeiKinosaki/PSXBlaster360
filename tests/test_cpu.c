@@ -57,7 +57,7 @@ int main(void)
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
     assert(cpu.gpr[13] == 99u && cpu.pc == 40u);
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
-    assert(cpu.gpr[14] == 0u && cpu.gpr[15] == 0u);
+    assert(cpu.gpr[14] == 0u && cpu.gpr[15] == 22u);
 
     /* Unsupported opcodes stop without counting an instruction. */
     assert(psx_memory_write32(&memory, 44, 0xffffffffu));
