@@ -1,0 +1,31 @@
+name: Host tests
+
+on:
+  push:
+    paths:
+      - "include/**"
+      - "src/**"
+      - "tests/**"
+      - "Makefile"
+      - ".github/workflows/host-tests.yml"
+  pull_request:
+    paths:
+      - "include/**"
+      - "src/**"
+      - "tests/**"
+      - "Makefile"
+      - ".github/workflows/host-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install compiler and make
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+      - name: Compile and run host tests
+        run: make clean host-test
