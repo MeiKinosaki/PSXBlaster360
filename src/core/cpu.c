@@ -67,9 +67,11 @@ psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
     uint16_t imm;
     uint32_t a, b, result;
     int32_t signed_a, signed_b;
+    uint8_t was_delay_slot;
     if (cpu == NULL || memory == NULL) return PSX_CPU_STEP_MEMORY_FAULT;
 
     old_pc = cpu->pc;
+    was_delay_slot = cpu->branch_delay_pending;
     if (!psx_memory_read32(memory, old_pc, &instruction))
         return PSX_CPU_STEP_MEMORY_FAULT;
 
@@ -214,7 +216,7 @@ psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
     }
 
     cpu->gpr[0] = 0u;
-    cpu->branch_delay_pending = 0u;
+    if (was_delay_slot) cpu->branch_delay_pending = 0u;
     cpu->instructions_retired++;
     return PSX_CPU_STEP_OK;
 }
