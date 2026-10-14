@@ -1,6 +1,7 @@
 #include "psx/cpu.h"
 
 #include <stddef.h>
+#include <limits.h>
 #include <string.h>
 
 void psx_cpu_reset(psx_cpu_t *cpu)
@@ -10,6 +11,8 @@ void psx_cpu_reset(psx_cpu_t *cpu)
     cpu->pc = 0xbfc00000u;
     cpu->next_pc = 0xbfc00004u;
     cpu->cop0_status = 0x10900000u;
+    cpu->branch_delay_pending = 0u;
+    cpu->branch_pc = 0u;
 }
 
 int32_t psx_cpu_sign_extend16(uint16_t immediate)
@@ -25,6 +28,37 @@ int32_t psx_cpu_sign_extend8(uint8_t immediate)
 static uint32_t branch_target(uint32_t pc_after_instruction, uint16_t immediate)
 {
     return pc_after_instruction + ((uint32_t)psx_cpu_sign_extend16(immediate) << 2);
+}
+
+enum {
+    PSX_EXC_SYS = 8,
+    PSX_EXC_BP = 9,
+    PSX_EXC_RI = 10,
+    PSX_EXC_OV = 12
+};
+
+static psx_cpu_step_result_t raise_exception(psx_cpu_t *cpu, uint32_t old_pc,
+                                              uint32_t exception_code)
+{
+    uint32_t status = cpu->cop0_status;
+    uint32_t epc = cpu->branch_delay_pending ? cpu->branch_pc : old_pc;
+
+    cpu->cop0_epc = epc;
+    cpu->cop0_cause &= ~0x8000007cu;
+    cpu->cop0_cause |= (exception_code << 2);
+    if (cpu->branch_delay_pending) cpu->cop0_cause |= 0x80000000u;
+
+    /* R3000A exception stack: push the low six mode bits into previous mode. */
+    cpu->cop0_status = (status & ~0x3fu) | ((status << 2) & 0x3fu);
+    cpu->branch_delay_pending = 0u;
+
+    /* BEV selects the bootstrap exception vector; otherwise use the normal vector. */
+    {
+        uint32_t vector = (status & (1u << 22)) ? 0xbfc00180u : 0x80000080u;
+        cpu->pc = vector;
+        cpu->next_pc = vector + 4u;
+    }
+    return PSX_CPU_STEP_EXCEPTION;
 }
 
 psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
@@ -59,11 +93,13 @@ psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
     switch (opcode) {
     case 0x00u: /* SPECIAL */
         switch (funct) {
+        case 0x0cu: return raise_exception(cpu, old_pc, PSX_EXC_SYS); /* SYSCALL */
+        case 0x0du: return raise_exception(cpu, old_pc, PSX_EXC_BP); /* BREAK */
         case 0x00u: result = b << shamt; if (rd) cpu->gpr[rd] = result; break; /* SLL */
         case 0x02u: result = b >> shamt; if (rd) cpu->gpr[rd] = result; break; /* SRL */
         case 0x03u: result = (uint32_t)(signed_b >> shamt); if (rd) cpu->gpr[rd] = result; break; /* SRA */
-        case 0x08u: cpu->next_pc = a; break; /* JR */
-        case 0x09u: if (rd) cpu->gpr[rd] = old_pc + 8u; cpu->next_pc = a; break; /* JALR */
+        case 0x08u: cpu->branch_delay_pending = 1u; cpu->branch_pc = old_pc; cpu->next_pc = a; break; /* JR */
+        case 0x09u: if (rd) cpu->gpr[rd] = old_pc + 8u; cpu->branch_delay_pending = 1u; cpu->branch_pc = old_pc; cpu->next_pc = a; break; /* JALR */
         case 0x10u: if (rd) cpu->gpr[rd] = cpu->hi; break; /* MFHI */
         case 0x12u: if (rd) cpu->gpr[rd] = cpu->lo; break; /* MFLO */
         case 0x18u: { /* MULT signed */
@@ -74,9 +110,17 @@ psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
             uint64_t product = (uint64_t)a * (uint64_t)b;
             cpu->lo = (uint32_t)product; cpu->hi = (uint32_t)(product >> 32); break;
         }
-        case 0x20u: result = a + b; if (rd) cpu->gpr[rd] = result; break; /* ADD (overflow trap deferred) */
+        case 0x20u: {
+            int64_t sum = (int64_t)signed_a + (int64_t)signed_b;
+            if (sum > INT32_MAX || sum < INT32_MIN) return raise_exception(cpu, old_pc, PSX_EXC_OV);
+            result = (uint32_t)sum; if (rd) cpu->gpr[rd] = result; break;
+        } /* ADD */
         case 0x21u: result = a + b; if (rd) cpu->gpr[rd] = result; break; /* ADDU */
-        case 0x22u: result = a - b; if (rd) cpu->gpr[rd] = result; break; /* SUB (overflow trap deferred) */
+        case 0x22u: {
+            int64_t difference = (int64_t)signed_a - (int64_t)signed_b;
+            if (difference > INT32_MAX || difference < INT32_MIN) return raise_exception(cpu, old_pc, PSX_EXC_OV);
+            result = (uint32_t)difference; if (rd) cpu->gpr[rd] = result; break;
+        } /* SUB */
         case 0x23u: result = a - b; if (rd) cpu->gpr[rd] = result; break; /* SUBU */
         case 0x24u: if (rd) cpu->gpr[rd] = a & b; break;
         case 0x25u: if (rd) cpu->gpr[rd] = a | b; break;
@@ -84,21 +128,27 @@ psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
         case 0x27u: if (rd) cpu->gpr[rd] = ~(a | b); break;
         case 0x2au: if (rd) cpu->gpr[rd] = signed_a < signed_b ? 1u : 0u; break;
         case 0x2bu: if (rd) cpu->gpr[rd] = a < b ? 1u : 0u; break;
-        default: cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_UNSUPPORTED_INSTRUCTION;
+        default: return raise_exception(cpu, old_pc, PSX_EXC_RI);
         }
         break;
     case 0x02u: /* J */
+        cpu->branch_delay_pending = 1u; cpu->branch_pc = old_pc;
         cpu->next_pc = (cpu->pc & 0xf0000000u) | ((instruction & 0x03ffffffu) << 2);
         break;
     case 0x03u: /* JAL */
+        cpu->branch_delay_pending = 1u; cpu->branch_pc = old_pc;
         cpu->gpr[31] = old_pc + 8u;
         cpu->next_pc = (cpu->pc & 0xf0000000u) | ((instruction & 0x03ffffffu) << 2);
         break;
-    case 0x04u: if (a == b) cpu->next_pc = branch_target(old_pc + 4u, imm); break; /* BEQ */
-    case 0x05u: if (a != b) cpu->next_pc = branch_target(old_pc + 4u, imm); break; /* BNE */
-    case 0x06u: if (signed_a <= 0) cpu->next_pc = branch_target(old_pc + 4u, imm); break; /* BLEZ */
-    case 0x07u: if (signed_a > 0) cpu->next_pc = branch_target(old_pc + 4u, imm); break; /* BGTZ */
-    case 0x08u: result = a + (uint32_t)psx_cpu_sign_extend16(imm); if (rt) cpu->gpr[rt] = result; break; /* ADDI */
+    case 0x04u: cpu->branch_delay_pending = 1u; cpu->branch_pc = old_pc; if (a == b) cpu->next_pc = branch_target(old_pc + 4u, imm); break; /* BEQ */
+    case 0x05u: cpu->branch_delay_pending = 1u; cpu->branch_pc = old_pc; if (a != b) cpu->next_pc = branch_target(old_pc + 4u, imm); break; /* BNE */
+    case 0x06u: cpu->branch_delay_pending = 1u; cpu->branch_pc = old_pc; if (signed_a <= 0) cpu->next_pc = branch_target(old_pc + 4u, imm); break; /* BLEZ */
+    case 0x07u: cpu->branch_delay_pending = 1u; cpu->branch_pc = old_pc; if (signed_a > 0) cpu->next_pc = branch_target(old_pc + 4u, imm); break; /* BGTZ */
+    case 0x08u: {
+        int64_t sum = (int64_t)signed_a + (int64_t)psx_cpu_sign_extend16(imm);
+        if (sum > INT32_MAX || sum < INT32_MIN) return raise_exception(cpu, old_pc, PSX_EXC_OV);
+        result = (uint32_t)sum; if (rt) cpu->gpr[rt] = result; break;
+    } /* ADDI */
     case 0x09u: result = a + (uint32_t)psx_cpu_sign_extend16(imm); if (rt) cpu->gpr[rt] = result; break; /* ADDIU */
     case 0x0au: if (rt) cpu->gpr[rt] = signed_a < psx_cpu_sign_extend16(imm) ? 1u : 0u; break;
     case 0x0bu: if (rt) cpu->gpr[rt] = a < (uint32_t)psx_cpu_sign_extend16(imm) ? 1u : 0u; break;
@@ -160,11 +210,11 @@ psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
         if (!psx_memory_write32(memory, address, b)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
         break;
     default:
-        cpu->pc = old_pc; cpu->next_pc = old_pc + 4u;
-        return PSX_CPU_STEP_UNSUPPORTED_INSTRUCTION;
+        return raise_exception(cpu, old_pc, PSX_EXC_RI);
     }
 
     cpu->gpr[0] = 0u;
+    cpu->branch_delay_pending = 0u;
     cpu->instructions_retired++;
     return PSX_CPU_STEP_OK;
 }
