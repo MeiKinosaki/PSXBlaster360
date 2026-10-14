@@ -15,13 +15,17 @@ typedef struct psx_cpu {
     uint32_t cop0_status;
     uint32_t cop0_cause;
     uint32_t cop0_epc;
+    uint32_t cop0_bad_vaddr;
     uint64_t instructions_retired;
+    uint32_t branch_pc;
+    uint8_t branch_delay_pending;
 } psx_cpu_t;
 
 typedef enum psx_cpu_step_result {
     PSX_CPU_STEP_OK = 0,
     PSX_CPU_STEP_MEMORY_FAULT,
-    PSX_CPU_STEP_UNSUPPORTED_INSTRUCTION
+    PSX_CPU_STEP_UNSUPPORTED_INSTRUCTION,
+    PSX_CPU_STEP_EXCEPTION
 } psx_cpu_step_result_t;
 
 void psx_cpu_reset(psx_cpu_t *cpu);
