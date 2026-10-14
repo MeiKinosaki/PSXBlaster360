@@ -101,9 +101,10 @@ int main(void)
     assert(psx_memory_write32(&memory, 88, i_type(0x21, 1, 6, 1)));
     {
         uint64_t retired = cpu.instructions_retired;
-        assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_MEMORY_FAULT);
+        assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_EXCEPTION);
         assert(cpu.instructions_retired == retired);
-        assert(cpu.pc == 88u);
+        assert(cpu.cop0_bad_vaddr == 0x301u);
+        assert(((cpu.cop0_cause >> 2) & 31u) == 4u);
     }
 
     /* Signed overflow raises COP0 exception without retiring the instruction. */
@@ -150,11 +151,11 @@ int main(void)
     assert(psx_memory_write32(&memory, 8, (0x10u << 26) | (0x10u << 21) | 0x10u)); /* RFE */
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
     assert(cpu.gpr[2] == 0x3cu);
-    cpu.gpr[3] = 0x55u;
+    cpu.gpr[3] = 0x3cu;
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
-    assert(cpu.cop0_status == 0x55u);
+    assert(cpu.cop0_status == 0x3cu);
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
-    assert(cpu.cop0_status == 0x15u);
+    assert(cpu.cop0_status == 0x3fu);
 
     psx_cpu_reset(&cpu);
     cpu.pc = 0u; cpu.next_pc = 4u; cpu.gpr[1] = 0x301u;
