@@ -64,9 +64,11 @@ int main(void)
     {
         uint64_t retired = cpu.instructions_retired;
         cpu.pc = 44; cpu.next_pc = 48;
-        assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_UNSUPPORTED_INSTRUCTION);
+        assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_EXCEPTION);
         assert(cpu.instructions_retired == retired);
-        assert(cpu.pc == 44u);
+        assert(cpu.cop0_epc == 44u);
+        assert(((cpu.cop0_cause >> 2) & 31u) == 10u);
+        assert(cpu.pc == 0x80000080u);
     }
 
     /* Byte/halfword sign extension and stores use the same RAM bus. */
@@ -126,6 +128,18 @@ int main(void)
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_EXCEPTION);
     assert(((cpu.cop0_cause >> 2) & 31u) == 8u);
     assert(cpu.cop0_epc == 0u);
+
+    /* Exceptions in a branch delay slot set BD and use the branch PC as EPC. */
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u;
+    assert(psx_memory_write32(&memory, 0, i_type(0x04, 0, 0, 1))); /* BEQ zero,zero,+1 */
+    assert(psx_memory_write32(&memory, 4, 0x0000000cu); /* SYSCALL in delay slot */
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.branch_delay_pending == 1u);
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_EXCEPTION);
+    assert(cpu.cop0_epc == 0u);
+    assert((cpu.cop0_cause & 0x80000000u) != 0u);
+    assert(((cpu.cop0_cause >> 2) & 31u) == 8u);
 
     assert(psx_cpu_sign_extend16(0x8000u) == -32768);
     assert(psx_cpu_sign_extend8(0xffu) == -1);
