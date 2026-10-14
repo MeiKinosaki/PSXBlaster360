@@ -108,8 +108,11 @@ psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
     case 0x0fu: if (rt) cpu->gpr[rt] = (uint32_t)imm << 16; break;
     case 0x20u: /* LB */
         address = a + (uint32_t)psx_cpu_sign_extend16(imm);
-        if (!psx_memory_read8(memory, address, (uint8_t *)&result)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
-        result = (uint32_t)psx_cpu_sign_extend8((uint8_t)result);
+        {
+            uint8_t byte;
+            if (!psx_memory_read8(memory, address, &byte)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+            result = (uint32_t)psx_cpu_sign_extend8(byte);
+        }
         if (rt) cpu->gpr[rt] = result;
         break;
     case 0x21u: /* LH */
