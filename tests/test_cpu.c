@@ -104,6 +104,29 @@ int main(void)
         assert(cpu.pc == 88u);
     }
 
+    /* Signed overflow raises COP0 exception without retiring the instruction. */
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u;
+    cpu.gpr[1] = 0x7fffffffu;
+    assert(psx_memory_write32(&memory, 0, i_type(0x08, 1, 2, 1))); /* ADDI v0,at,1 */
+    {
+        uint64_t retired = cpu.instructions_retired;
+        assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_EXCEPTION);
+        assert(((cpu.cop0_cause >> 2) & 31u) == 12u);
+        assert(cpu.cop0_epc == 0u);
+        assert(cpu.gpr[2] == 0u);
+        assert(cpu.pc == 0x80000080u);
+        assert(cpu.instructions_retired == retired);
+    }
+
+    /* SYSCALL raises exception code 8 and records EPC. */
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u;
+    assert(psx_memory_write32(&memory, 0, 0x0000000cu));
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_EXCEPTION);
+    assert(((cpu.cop0_cause >> 2) & 31u) == 8u);
+    assert(cpu.cop0_epc == 0u);
+
     assert(psx_cpu_sign_extend16(0x8000u) == -32768);
     assert(psx_cpu_sign_extend8(0xffu) == -1);
     puts("PSXBlaster360 CPU execution tests: PASS");
