@@ -133,7 +133,7 @@ int main(void)
     psx_cpu_reset(&cpu);
     cpu.pc = 0u; cpu.next_pc = 4u;
     assert(psx_memory_write32(&memory, 0, i_type(0x04, 0, 0, 1))); /* BEQ zero,zero,+1 */
-    assert(psx_memory_write32(&memory, 4, 0x0000000cu); /* SYSCALL in delay slot */
+    assert(psx_memory_write32(&memory, 4, 0x0000000cu)); /* SYSCALL in delay slot */
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
     assert(cpu.branch_delay_pending == 1u);
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_EXCEPTION);
