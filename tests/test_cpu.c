@@ -69,6 +69,41 @@ int main(void)
         assert(cpu.pc == 44u);
     }
 
+    /* Byte/halfword sign extension and stores use the same RAM bus. */
+    cpu.pc = 64u; cpu.next_pc = 68u;
+    cpu.gpr[1] = 0x300u;
+    assert(psx_memory_write8(&memory, 0x301u, 0x80u));
+    assert(psx_memory_write16(&memory, 0x304u, 0x8001u));
+    assert(psx_memory_write32(&memory, 64, i_type(0x20, 1, 2, 1)));  /* LB v0,1(at) */
+    assert(psx_memory_write32(&memory, 68, i_type(0x24, 1, 3, 1)));  /* LBU v1,1(at) */
+    assert(psx_memory_write32(&memory, 72, i_type(0x21, 1, 4, 4)));  /* LH a0,4(at) */
+    assert(psx_memory_write32(&memory, 76, i_type(0x25, 1, 5, 4)));  /* LHU a1,4(at) */
+    assert(psx_memory_write32(&memory, 80, i_type(0x28, 1, 2, 8)));  /* SB v0,8(at) */
+    assert(psx_memory_write32(&memory, 84, i_type(0x29, 1, 5, 10))); /* SH a1,10(at) */
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[2] == 0xffffff80u);
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[3] == 0x80u);
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[4] == 0xffff8001u);
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[5] == 0x8001u);
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    { uint8_t byte = 0; assert(psx_memory_read8(&memory, 0x308u, &byte) && byte == 0x80u); }
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    { uint16_t half = 0; assert(psx_memory_read16(&memory, 0x30au, &half) && half == 0x8001u); }
+
+    /* Unaligned halfword access must fault without retiring. */
+    cpu.pc = 88u; cpu.next_pc = 92u;
+    cpu.gpr[1] = 0x300u;
+    assert(psx_memory_write32(&memory, 88, i_type(0x21, 1, 6, 1)));
+    {
+        uint64_t retired = cpu.instructions_retired;
+        assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_MEMORY_FAULT);
+        assert(cpu.instructions_retired == retired);
+        assert(cpu.pc == 88u);
+    }
+
     assert(psx_cpu_sign_extend16(0x8000u) == -32768);
     assert(psx_cpu_sign_extend8(0xffu) == -1);
     puts("PSXBlaster360 CPU execution tests: PASS");
