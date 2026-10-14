@@ -141,6 +141,28 @@ int main(void)
     assert((cpu.cop0_cause & 0x80000000u) != 0u);
     assert(((cpu.cop0_cause >> 2) & 31u) == 8u);
 
+    /* COP0 moves, RFE status stack and address-error exception. */
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u;
+    cpu.cop0_status = 0x0000003cu;
+    assert(psx_memory_write32(&memory, 0, (0x10u << 26) | (0x00u << 21) | (2u << 16) | (12u << 11))); /* MFC0 v0,Status */
+    assert(psx_memory_write32(&memory, 4, (0x10u << 26) | (0x04u << 21) | (3u << 16) | (12u << 11))); /* MTC0 v1,Status */
+    assert(psx_memory_write32(&memory, 8, (0x10u << 26) | (0x10u << 21) | 0x10u)); /* RFE */
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[2] == 0x3cu);
+    cpu.gpr[3] = 0x55u;
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.cop0_status == 0x55u);
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.cop0_status == 0x15u);
+
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u; cpu.gpr[1] = 0x301u;
+    assert(psx_memory_write32(&memory, 0, i_type(0x21, 1, 2, 0))); /* LH v0,0(at) unaligned */
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_EXCEPTION);
+    assert(((cpu.cop0_cause >> 2) & 31u) == 4u);
+    assert(cpu.cop0_bad_vaddr == 0x301u);
+
     assert(psx_cpu_sign_extend16(0x8000u) == -32768);
     assert(psx_cpu_sign_extend8(0xffu) == -1);
     puts("PSXBlaster360 CPU execution tests: PASS");
