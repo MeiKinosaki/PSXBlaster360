@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "psx/memory.h"
 
-#define PSX_CPU_VERSION "v3.6.17b"
+#define PSX_CPU_VERSION "v3.6.19b"
 
 typedef struct psx_cpu {
     uint32_t gpr[32];
