@@ -13,12 +13,16 @@ $(BUILD_DIR):
 $(BUILD_DIR)/test_memory: src/core/memory.c tests/test_memory.c include/psx/memory.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) src/core/memory.c tests/test_memory.c -o $@
 
+$(BUILD_DIR)/test_bus: src/core/bus.c src/core/memory.c tests/test_bus.c include/psx/bus.h include/psx/memory.h | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) src/core/bus.c src/core/memory.c tests/test_bus.c -o $@
+
 $(BUILD_DIR)/test_cpu: src/core/cpu.c src/core/memory.c tests/test_cpu.c include/psx/cpu.h include/psx/memory.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) src/core/cpu.c src/core/memory.c tests/test_cpu.c -o $@
 
-host-test: $(BUILD_DIR)/test_memory $(BUILD_DIR)/test_cpu
+host-test: $(BUILD_DIR)/test_memory $(BUILD_DIR)/test_cpu $(BUILD_DIR)/test_bus
 	./$(BUILD_DIR)/test_memory
 	./$(BUILD_DIR)/test_cpu
+	./$(BUILD_DIR)/test_bus
 
 clean:
 	rm -rf $(BUILD_DIR)
