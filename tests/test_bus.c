@@ -17,7 +17,7 @@ int main(void)
     assert(psx_bus_write32(&bus, 0x1f801074u, 0x7ffu));
     assert(psx_bus_read32(&bus, 0x1f801074u, &value) && value == 0x7ffu);
     bus.irq_status = 0x15u;
-    assert(psx_bus_write32(&bus, 0x1f801070u, ~0x4u));
+    assert(psx_bus_write32(&bus, 0x1f801070u, 0x11u)); /* acknowledge IRQ bits 0 and 4 */
     assert(bus.irq_status == 0x4u);
 
     assert(psx_bus_write32(&bus, 0x1f801108u, 10u)); /* timer 0 target */
