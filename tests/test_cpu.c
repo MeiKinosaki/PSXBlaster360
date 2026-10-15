@@ -164,6 +164,16 @@ int main(void)
     assert(((cpu.cop0_cause >> 2) & 31u) == 4u);
     assert(cpu.cop0_bad_vaddr == 0x301u);
 
+    /* SLTI is signed while SLTIU compares against sign-extended immediate unsigned. */
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u; cpu.gpr[1] = 0u;
+    assert(psx_memory_write32(&memory, 0, i_type(0x0a, 1, 2, 0xffff))); /* SLTI v0,at,-1 */
+    assert(psx_memory_write32(&memory, 4, i_type(0x0b, 1, 3, 0xffff))); /* SLTIU v1,at,-1 */
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[2] == 0u);
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[3] == 1u);
+
     assert(psx_cpu_sign_extend16(0x8000u) == -32768);
     assert(psx_cpu_sign_extend8(0xffu) == -1);
     puts("PSXBlaster360 CPU execution tests: PASS");
