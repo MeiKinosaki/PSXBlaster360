@@ -69,7 +69,8 @@ bool psx_bus_write32(psx_bus_t *bus, uint32_t address, uint32_t value)
 {
     uint32_t offset, channel, reg;
     if (bus == NULL) return false;
-    if (address == IRQ_STATUS) { bus->irq_status &= value; return true; }
+    /* I_STAT is write-one-to-clear: only bits written as 1 are acknowledged. */
+    if (address == IRQ_STATUS) { bus->irq_status &= ~value; return true; }
     if (address == IRQ_MASK) { bus->irq_mask = value & 0x7ffu; return true; }
     if (address >= TIMER_BASE && address < TIMER_BASE + 0x30u) {
         offset = address - TIMER_BASE;
@@ -77,8 +78,11 @@ bool psx_bus_write32(psx_bus_t *bus, uint32_t address, uint32_t value)
         reg = (offset % 0x10u) / 4u;
         if (channel >= PSX_BUS_TIMER_COUNT || reg > 2u || (offset & 3u)) return false;
         if (reg == 0u) bus->timers[channel].count = value & 0xffffu;
-        else if (reg == 1u) bus->timers[channel].mode = value & 0x3ffu;
-        else bus->timers[channel].target = value & 0xffffu;
+        else if (reg == 1u) {
+            /* Writing MODE resets the counter and clears latched hit flags. */
+            bus->timers[channel].mode = value & 0x3ffu;
+            bus->timers[channel].count = 0u;
+        } else bus->timers[channel].target = value & 0xffffu;
         return true;
     }
     if (address >= DMA_BASE && address < DMA_BASE + 0x70u) {
@@ -93,7 +97,7 @@ bool psx_bus_write32(psx_bus_t *bus, uint32_t address, uint32_t value)
     }
     if (address == DPCR_ADDR) { bus->dma_control = value; return true; }
     if (address == DICR_ADDR) {
-        /* Flag bits are write-one-to-clear; control bits are writable. */
+        /* Bits 24-30 are write-one-to-clear completion flags. */
         bus->dma_interrupt = (value & 0x00ffffffu) |
                              (bus->dma_interrupt & 0x7f000000u & ~value);
         return true;
@@ -107,8 +111,7 @@ void psx_bus_tick(psx_bus_t *bus, uint32_t cycles)
     if (bus == NULL) return;
     for (i = 0; i < PSX_BUS_TIMER_COUNT; ++i) {
         psx_timer_t *timer = &bus->timers[i];
-        uint32_t old_count = timer->count;
-        uint32_t next = old_count + cycles;
+        uint32_t next = timer->count + cycles;
         bool target_hit = timer->target != 0u && next >= timer->target;
         bool overflow = next > 0xffffu;
         timer->count = next & 0xffffu;
@@ -121,6 +124,5 @@ void psx_bus_tick(psx_bus_t *bus, uint32_t cycles)
             timer->mode |= 1u << 12;
             if (timer->mode & (1u << 5)) bus->irq_status |= 1u << (4u + i);
         }
-        (void)old_count;
     }
 }
