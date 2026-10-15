@@ -125,6 +125,9 @@ psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
         switch (funct) {
         case 0x0cu: return raise_exception(cpu, old_pc, PSX_EXC_SYS); /* SYSCALL */
         case 0x0du: return raise_exception(cpu, old_pc, PSX_EXC_BP); /* BREAK */
+        case 0x04u: result = b << (a & 31u); if (rd) cpu->gpr[rd] = result; break; /* SLLV */
+        case 0x06u: result = b >> (a & 31u); if (rd) cpu->gpr[rd] = result; break; /* SRLV */
+        case 0x07u: result = (uint32_t)(signed_b >> (a & 31u)); if (rd) cpu->gpr[rd] = result; break; /* SRAV */
         case 0x00u: result = b << shamt; if (rd) cpu->gpr[rd] = result; break; /* SLL */
         case 0x02u: result = b >> shamt; if (rd) cpu->gpr[rd] = result; break; /* SRL */
         case 0x03u: result = (uint32_t)(signed_b >> shamt); if (rd) cpu->gpr[rd] = result; break; /* SRA */
@@ -140,6 +143,19 @@ psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
             uint64_t product = (uint64_t)a * (uint64_t)b;
             cpu->lo = (uint32_t)product; cpu->hi = (uint32_t)(product >> 32); break;
         }
+        case 0x1au: /* DIV signed; MIPS leaves HI/LO unchanged on divisor zero */
+            if (signed_b != 0) {
+                if (signed_a == INT32_MIN && signed_b == -1) {
+                    cpu->lo = 0x80000000u; cpu->hi = 0u;
+                } else {
+                    cpu->lo = (uint32_t)(signed_a / signed_b);
+                    cpu->hi = (uint32_t)(signed_a % signed_b);
+                }
+            }
+            break;
+        case 0x1bu: /* DIVU */
+            if (b != 0u) { cpu->lo = a / b; cpu->hi = a % b; }
+            break;
         case 0x20u: {
             int64_t sum = (int64_t)signed_a + (int64_t)signed_b;
             if (sum > INT32_MAX || sum < INT32_MIN) return raise_exception(cpu, old_pc, PSX_EXC_OV);
