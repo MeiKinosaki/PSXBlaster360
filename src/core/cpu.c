@@ -46,7 +46,6 @@ static psx_cpu_step_result_t raise_exception(psx_cpu_t *cpu, uint32_t old_pc,
     uint32_t epc = cpu->branch_delay_pending ? cpu->branch_pc : old_pc;
 
     cpu->cop0_epc = epc;
-    if (exception_code == PSX_EXC_ADEL || exception_code == PSX_EXC_ADES) cpu->cop0_bad_vaddr = old_pc;
     cpu->cop0_cause &= ~0x8000007cu;
     cpu->cop0_cause |= (exception_code << 2);
     if (cpu->branch_delay_pending) cpu->cop0_cause |= 0x80000000u;
@@ -75,7 +74,7 @@ psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
 
     old_pc = cpu->pc;
     was_delay_slot = cpu->branch_delay_pending;
-    if ((old_pc & 3u) != 0u) return raise_exception(cpu, old_pc, PSX_EXC_ADEL);
+    if ((old_pc & 3u) != 0u) { cpu->cop0_bad_vaddr = old_pc; return raise_exception(cpu, old_pc, PSX_EXC_ADEL); }
     if (!psx_memory_read32(memory, old_pc, &instruction))
         return PSX_CPU_STEP_MEMORY_FAULT;
 
