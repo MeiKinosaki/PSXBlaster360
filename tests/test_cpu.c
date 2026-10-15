@@ -174,6 +174,21 @@ int main(void)
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
     assert(cpu.gpr[3] == 1u);
 
+    /* Variable shifts and signed/unsigned division use HI/LO correctly. */
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u;
+    cpu.gpr[1] = 3u; cpu.gpr[2] = 0x10u;
+    assert(psx_memory_write32(&memory, 0, r_type(1, 2, 3, 0, 0x04))); /* SLLV v1,v0,at */
+    assert(psx_memory_write32(&memory, 4, r_type(0, 2, 0, 0, 0x1a))); /* DIV zero,v0 */
+    assert(psx_memory_write32(&memory, 8, r_type(0, 2, 0, 0, 0x1b))); /* DIVU zero,v0 */
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[3] == 0x80u);
+    cpu.gpr[1] = 100u; cpu.gpr[2] = 7u;
+    assert(psx_memory_write32(&memory, 12, r_type(1, 2, 0, 0, 0x1b)));
+    cpu.pc = 12u; cpu.next_pc = 16u;
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.lo == 14u && cpu.hi == 2u);
+
     assert(psx_cpu_sign_extend16(0x8000u) == -32768);
     assert(psx_cpu_sign_extend8(0xffu) == -1);
     puts("PSXBlaster360 CPU execution tests: PASS");
