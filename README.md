@@ -9,10 +9,10 @@
 
 ## Avanços no núcleo
 
-- CPU: aritmética/lógica, saltos e delay slots, multiplicação, loads/stores de 8/16/32 bits.
+- CPU: aritmética/lógica, saltos e delay slots, shifts fixos/variáveis, multiplicação/divisão, loads/stores de 8/16/32 bits.
 - COP0 inicial: MFC0/MTC0/RFE e exceções de overflow, SYSCALL, BREAK, instrução reservada e alinhamento.
 - Memória: RAM little-endian, aliases KSEG0/KSEG1 e testes nativos.
-- v3.6.20b corrige a preservação de BadVAddr nos erros de alinhamento e acrescenta cobertura para SLTI/SLTIU.
+- v3.6.20b amplia a cobertura de shifts e DIV/DIVU, além da correção de BadVAddr e testes SLTI/SLTIU.
 
 ## Próximas frentes
 
