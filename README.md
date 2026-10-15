@@ -2,24 +2,22 @@
 
 **Objetivo:** emulador de PlayStation (PS1) para Xbox 360 com RGH.
 
-- Versão de desenvolvimento: **v3.6.20b**
+- Versão de desenvolvimento: **v3.6.21b**
 - Alvo final: **`default.xex`**
-- Estado: núcleo inicial em C; CPU MIPS R3000A parcial e RAM com espelhamento.
+- Estado: núcleo em C com CPU MIPS R3000A parcial, RAM e primeira camada de barramento/dispositivos.
 - **Ainda não existe `default.xex` validado.**
 
-## Avanços no núcleo
+## Avanços v3.6.21b
 
-- CPU: aritmética/lógica, saltos e delay slots, shifts fixos/variáveis, multiplicação/divisão, loads/stores de 8/16/32 bits.
-- COP0 inicial: MFC0/MTC0/RFE e exceções de overflow, SYSCALL, BREAK, instrução reservada e alinhamento.
-- Memória: RAM little-endian, aliases KSEG0/KSEG1 e testes nativos.
-- v3.6.20b amplia a cobertura de shifts e DIV/DIVU, além da correção de BadVAddr e testes SLTI/SLTIU.
+- CPU: operações aritméticas/lógicas, branches com delay slot, shifts, multiplicação/divisão e loads/stores.
+- COP0: suporte inicial a MFC0/MTC0/RFE e exceções selecionadas.
+- Memória: RAM de 2 MiB, aliases KSEG0/KSEG1 e acessos little-endian.
+- Barramento inicial: registradores de IRQ, três timers, registradores de sete canais DMA e DPCR/DICR.
+- GPU: reconhecimento inicial dos comandos GP0 de ambiente E1-E6.
+- Testes nativos para RAM, CPU e novos registradores de barramento/dispositivos.
 
-## Próximas frentes
+## Limitações importantes
 
-1. Completar CPU/COP0 e exceções precisas.
-2. Barramento de memória e mapa de dispositivos.
-3. GPU/GP0, framebuffer e rasterização.
-4. DMA, timers, SPU, controladores e CD-ROM.
-5. BIOS/boot path, interface Xbox 360 e pipeline de build para `default.xex`.
+A camada de barramento ainda não está ligada à execução da CPU como MMIO completo. Timers têm temporização simplificada; DMA ainda não executa transferências; GPU ainda não rasteriza primitivas. COP0 e CPU permanecem parciais. BIOS, CD-ROM, SPU, controladores e interface Xbox 360 ainda precisam de implementação.
 
-Os testes em Linux verificam apenas os módulos nativos e não comprovam compatibilidade com Xbox 360. Um ELF renomeado não vira XEX.
+Os testes Linux não comprovam compatibilidade com Xbox 360. Renomear um ELF não o converte em XEX; `default.xex` ainda precisa ser gerado e validado com toolchain apropriada.
