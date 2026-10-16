@@ -2,12 +2,12 @@
 
 **Objetivo:** emulador de PlayStation (PS1) para Xbox 360 com RGH.
 
-- Versão de desenvolvimento: **v3.6.22b**
+- Versão de desenvolvimento: **v3.6.23b**
 - Alvo final: **`default.xex`**
 - Estado: CPU MIPS parcial, RAM de 2 MiB, interface de carregamento de BIOS de 512 KiB e camada inicial de dispositivos.
 - **Ainda não existe `default.xex` validado.**
 
-## Avanços v3.6.22b
+## Avanços v3.6.23b
 
 - CPU: aritmética/lógica, branches com delay slot, shifts, multiplicação/divisão e loads/stores.
 - COP0: suporte inicial a MFC0/MTC0/RFE e exceções selecionadas.
