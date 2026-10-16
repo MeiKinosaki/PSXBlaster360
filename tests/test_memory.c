@@ -1,14 +1,16 @@
 #include "psx/memory.h"
 
 #include <assert.h>
-#include <stdio.h>\n#include <string.h>
+#include <stdio.h>
+#include <string.h>
 
 int main(void)
 {
     static psx_memory_t memory;
     uint8_t value8 = 0;
     uint16_t value16 = 0;
-    uint32_t value32 = 0;\n    static uint8_t bios_image[PSX_BIOS_SIZE];
+    uint32_t value32 = 0;
+    static uint8_t bios_image[PSX_BIOS_SIZE];
 
     psx_memory_init(&memory);
     assert(psx_memory_read32(&memory, 0, &value32) && value32 == 0);
