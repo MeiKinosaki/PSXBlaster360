@@ -9,12 +9,15 @@
 #define DMA_BASE   0x1f801080u
 #define DPCR_ADDR  0x1f8010f0u
 #define DICR_ADDR  0x1f8010f4u
+#define GPU_GP0    0x1f801810u
+#define GPU_GP1    0x1f801814u
 
 void psx_bus_init(psx_bus_t *bus, psx_memory_t *memory)
 {
     if (bus == NULL) return;
     memset(bus, 0, sizeof(*bus));
     bus->memory = memory;
+    bus->gpu_gp1_status = 0x14802000u;
 }
 
 void psx_bus_gpu_gp0_write(psx_bus_t *bus, uint32_t value)
@@ -39,7 +42,8 @@ bool psx_bus_read32(psx_bus_t *bus, uint32_t address, uint32_t *value)
 {
     uint32_t offset, channel, reg;
     if (bus == NULL || value == NULL) return false;
-    if (address == IRQ_STATUS) { *value = bus->irq_status; return true; }
+    if (address == GPU_GP1) { *value = bus->gpu_gp1_status; return true; }
+    if (address == IRQ_STATUS) { *value = bus->irq_status; return true;
     if (address == IRQ_MASK) { *value = bus->irq_mask; return true; }
     if (address >= TIMER_BASE && address < TIMER_BASE + 0x30u) {
         offset = address - TIMER_BASE;
@@ -70,6 +74,48 @@ bool psx_bus_write32(psx_bus_t *bus, uint32_t address, uint32_t value)
     uint32_t offset, channel, reg;
     if (bus == NULL) return false;
     /* I_STAT is write-one-to-clear: only bits written as 1 are acknowledged. */
+    if (address == GPU_GP0) { psx_bus_gpu_gp0_write(bus, value); return true; }
+    if (address == GPU_GP1) {
+        uint32_t command = value >> 24;
+        bus->gpu_gp1_write_count++;
+        switch (command) {
+        case 0x00u: /* Reset GPU command state. */
+            bus->gpu_draw_mode = 0u;
+            bus->gpu_texture_window = 0u;
+            bus->gpu_draw_top_left = 0u;
+            bus->gpu_draw_bottom_right = 0u;
+            bus->gpu_draw_offset = 0u;
+            bus->gpu_mask_setting = 0u;
+            bus->gpu_gp1_status = 0x14802000u;
+            break;
+        case 0x01u: /* Reset command buffer (FIFO is not emulated yet). */
+            break;
+        case 0x02u: /* Acknowledge GPU IRQ. */
+            bus->gpu_gp1_status &= ~(1u << 24);
+            break;
+        case 0x03u: /* Display disable. */
+            bus->gpu_gp1_status = (bus->gpu_gp1_status & ~(1u << 23)) |
+                                  ((value & 1u) << 23);
+            break;
+        case 0x04u: /* DMA direction. */
+            bus->gpu_gp1_status = (bus->gpu_gp1_status & ~(3u << 29)) |
+                                  ((value & 3u) << 29);
+            break;
+        case 0x05u: /* Display start (stored in status model only). */
+            bus->gpu_gp1_status = (bus->gpu_gp1_status & ~0x0007fffeu) |
+                                  ((value & 0x000fffffu) << 1 & 0x0007fffeu);
+            break;
+        case 0x06u: case 0x07u: /* Horizontal/vertical ranges are not yet modeled. */
+            break;
+        case 0x08u: /* Display mode. */
+            bus->gpu_gp1_status = (bus->gpu_gp1_status & ~0x007f0000u) |
+                                  ((value & 0x3fu) << 17);
+            break;
+        default:
+            break;
+        }
+        return true;
+    }
     if (address == IRQ_STATUS) { bus->irq_status &= ~value; return true; }
     if (address == IRQ_MASK) { bus->irq_mask = value & 0x7ffu; return true; }
     if (address >= TIMER_BASE && address < TIMER_BASE + 0x30u) {
