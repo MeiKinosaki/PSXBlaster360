@@ -36,6 +36,17 @@ int main(void)
     assert(bus.gpu_draw_mode == 0x1234u && bus.gpu_gp0_write_count == 1u);
     psx_bus_gpu_gp0_write(&bus, 0xe6000003u);
     assert(bus.gpu_mask_setting == 3u);
+    /* GPU ports are mapped as MMIO; GP1 commands update the status model. */
+    assert(psx_bus_write32(&bus, 0x1f801810u, 0xe1004321u));
+    assert(bus.gpu_draw_mode == 0x4321u);
+    assert(psx_bus_write32(&bus, 0x1f801814u, 0x03000001u));
+    assert(psx_bus_read32(&bus, 0x1f801814u, &value));
+    assert((value & (1u << 23)) != 0u);
+    assert(psx_bus_write32(&bus, 0x1f801814u, 0x03000000u));
+    assert(psx_bus_read32(&bus, 0x1f801814u, &value));
+    assert((value & (1u << 23)) == 0u);
+    assert(bus.gpu_gp0_write_count == 3u);
+    assert(bus.gpu_gp1_write_count == 2u);
     assert(!psx_bus_read32(&bus, 0x1f801000u, &value));
 
     puts("PSXBlaster360 bus/device tests: PASS");
