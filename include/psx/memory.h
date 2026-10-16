@@ -6,10 +6,17 @@
 
 #define PSX_RAM_SIZE       (2u * 1024u * 1024u)
 #define PSX_RAM_MIRROR_MASK (PSX_RAM_SIZE - 1u)
+#define PSX_BIOS_SIZE (512u * 1024u)
+#define PSX_BIOS_BASE 0x1fc00000u
 
 typedef struct psx_memory {
     uint8_t ram[PSX_RAM_SIZE];
+    uint8_t bios[PSX_BIOS_SIZE];
+    bool bios_loaded;
 } psx_memory_t;
+
+/* Initializes RAM and leaves BIOS unmapped until the user supplies an image. */
+bool psx_memory_load_bios(psx_memory_t *memory, const uint8_t *image, uint32_t size);
 
 /* Initializes all emulated main RAM bytes to zero. */
 void psx_memory_init(psx_memory_t *memory);
