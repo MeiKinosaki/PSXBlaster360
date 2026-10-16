@@ -1,15 +1,22 @@
 #include "psx/system.h"
 
 #include <assert.h>
-#include <stdio.h>\n#include <stdint.h>
+#include <stdio.h>
+#include <stdint.h>
 
 int main(void)
 {
     psx_system_t system;
+    static uint8_t bios[PSX_BIOS_SIZE];
     psx_system_init(&system);
     assert(system.cpu.pc == 0xbfc00000u);
     assert(system.cycles == 0u);
-    /* Boot ROM is not mapped yet, so test the integrated scheduler on RAM. */
+    /* A user-supplied BIOS image is fetchable from the reset vector. */
+    assert(psx_memory_load_bios(&system.memory, bios, PSX_BIOS_SIZE));
+    assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_OK);
+    assert(system.cpu.pc == 0xbfc00004u);
+    psx_system_init(&system);
+    /* Test the integrated scheduler on RAM after resetting the test machine. */
     system.cpu.pc = 0u;
     system.cpu.next_pc = 4u;
     assert(psx_memory_write32(&system.memory, 0u, 0x24020005u)); /* ADDIU v0,zero,5 */
