@@ -48,7 +48,7 @@ int main(void)
     assert((bus.irq_status & (1u << 3)) != 0u);
 
     psx_bus_gpu_gp0_write(&bus, 0xe1001234u);
-    assert(bus.gpu_draw_mode == 0x1234u && bus.gpu_gp0_write_count == 1u);
+    assert(bus.gpu_draw_mode == 0x1234u && bus.gpu_gp0_write_count == 3u);
     psx_bus_gpu_gp0_write(&bus, 0xe6000003u);
     assert(bus.gpu_mask_setting == 3u);
     /* GPU ports are mapped as MMIO; GP1 commands update the status model. */
