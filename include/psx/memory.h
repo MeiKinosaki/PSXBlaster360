@@ -21,7 +21,7 @@ bool psx_memory_load_bios(psx_memory_t *memory, const uint8_t *image, uint32_t s
 /* Initializes all emulated main RAM bytes to zero. */
 void psx_memory_init(psx_memory_t *memory);
 
-/* RAM-only accessors. Return false for null pointers or misaligned accesses. */
+/* Memory accessors for RAM and a loaded read-only BIOS image. */
 bool psx_memory_read8(const psx_memory_t *memory, uint32_t address, uint8_t *value);
 bool psx_memory_read16(const psx_memory_t *memory, uint32_t address, uint16_t *value);
 bool psx_memory_read32(const psx_memory_t *memory, uint32_t address, uint32_t *value);
