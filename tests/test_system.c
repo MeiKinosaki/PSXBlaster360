@@ -1,7 +1,7 @@
 #include "psx/system.h"
 
 #include <assert.h>
-#include <stdio.h>
+#include <stdio.h>\n#include <stdint.h>
 
 int main(void)
 {
