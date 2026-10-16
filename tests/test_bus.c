@@ -29,8 +29,23 @@ int main(void)
     assert(psx_bus_write32(&bus, 0x1f801080u, 0x00123456u)); /* DMA0 MADR */
     assert(psx_bus_write32(&bus, 0x1f801084u, 0x00010002u));
     assert(psx_bus_read32(&bus, 0x1f801080u, &value) && value == 0x00123456u);
-    assert(psx_bus_write32(&bus, 0x1f8010f0u, 0x07654321u));
-    assert(psx_bus_read32(&bus, 0x1f8010f0u, &value) && value == 0x07654321u);
+    assert(psx_bus_write32(&bus, 0x1f8010f0u, 0x07654b21u));
+    assert(psx_bus_read32(&bus, 0x1f8010f0u, &value) && value == 0x07654b21u);
+
+    /* Manual RAM-to-GPU DMA channel 2 transfers two GP0 words. */
+    assert(psx_memory_write32(&memory, 0x200u, 0xe1001111u));
+    assert(psx_memory_write32(&memory, 0x204u, 0xe6000001u));
+    assert(psx_bus_write32(&bus, 0x1f8010f4u, (1u << 23) | (1u << 18)));
+    assert(psx_bus_write32(&bus, 0x1f8010a0u, 0x200u)); /* DMA2 MADR */
+    assert(psx_bus_write32(&bus, 0x1f8010a4u, 2u)); /* two words */
+    assert(psx_bus_write32(&bus, 0x1f8010a8u, (1u << 24) | 1u)); /* start, RAM->GPU */
+    psx_bus_tick(&bus, 1u);
+    assert(bus.dma_words_transferred == 2u);
+    assert(bus.gpu_draw_mode == 0x1111u);
+    assert(bus.gpu_mask_setting == 1u);
+    assert(bus.dma[2].madr == 0x208u);
+    assert((bus.dma_interrupt & (1u << 26)) != 0u);
+    assert((bus.irq_status & (1u << 3)) != 0u);
 
     psx_bus_gpu_gp0_write(&bus, 0xe1001234u);
     assert(bus.gpu_draw_mode == 0x1234u && bus.gpu_gp0_write_count == 1u);
