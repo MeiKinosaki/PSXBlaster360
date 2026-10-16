@@ -34,7 +34,9 @@ typedef struct psx_bus {
     uint32_t gpu_draw_bottom_right;
     uint32_t gpu_draw_offset;
     uint32_t gpu_mask_setting;
+    uint32_t gpu_gp1_status;
     uint64_t gpu_gp0_write_count;
+    uint64_t gpu_gp1_write_count;
 } psx_bus_t;
 
 void psx_bus_init(psx_bus_t *bus, psx_memory_t *memory);
