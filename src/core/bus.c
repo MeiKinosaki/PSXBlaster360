@@ -43,7 +43,7 @@ bool psx_bus_read32(psx_bus_t *bus, uint32_t address, uint32_t *value)
     uint32_t offset, channel, reg;
     if (bus == NULL || value == NULL) return false;
     if (address == GPU_GP1) { *value = bus->gpu_gp1_status; return true; }
-    if (address == IRQ_STATUS) { *value = bus->irq_status; return true;
+    if (address == IRQ_STATUS) { *value = bus->irq_status; return true; }
     if (address == IRQ_MASK) { *value = bus->irq_mask; return true; }
     if (address >= TIMER_BASE && address < TIMER_BASE + 0x30u) {
         offset = address - TIMER_BASE;
