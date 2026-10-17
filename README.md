@@ -2,10 +2,17 @@
 
 **Objetivo:** emulador de PlayStation (PS1) para Xbox 360 com RGH.
 
-- Versão de desenvolvimento: **v3.6.31b**
+- Versão de desenvolvimento: **v3.6.32b**
 - Alvo final: **`default.xex`**
 - Estado: CPU MIPS parcial, RAM de 2 MiB, interface de carregamento de BIOS de 512 KiB e camada inicial de dispositivos.
 - **Ainda não existe `default.xex` validado.**
+
+## Avanços v3.6.32b
+
+- CPU MIPS: implementadas as instruções LWL/LWR para combinar bytes de palavras alinhadas em registradores, sem exigir que o endereço efetivo esteja alinhado.
+- CPU MIPS: implementadas SWL/SWR com leitura-modificação-escrita da palavra alinhada, preservando as lanes de bytes que não pertencem à operação.
+- Testes: acrescentados casos de mesclagem de carga e gravação com valores de memória conhecidos; execução da CI da nova revisão ainda precisa terminar para confirmar o resultado.
+- Limitação: as operações de merge usam o caminho atual de barramento e não validam ainda todos os casos de borda de MMIO ou timing do processador original.
 
 ## Avanços v3.6.31b
 
