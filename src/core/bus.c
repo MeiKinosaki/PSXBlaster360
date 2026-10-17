@@ -86,9 +86,17 @@ bool psx_bus_read32(psx_bus_t *bus, uint32_t address, uint32_t *value)
         channel = offset / 0x10u;
         reg = (offset % 0x10u) / 4u;
         if (channel >= PSX_BUS_TIMER_COUNT || (offset & 3u)) return false;
-        *value = reg == 0u ? bus->timers[channel].count :
-                 reg == 1u ? bus->timers[channel].mode :
-                 reg == 2u ? bus->timers[channel].target : 0u;
+        if (reg == 0u) {
+            *value = bus->timers[channel].count;
+        } else if (reg == 1u) {
+            /* Timer target/overflow flags are cleared by reading MODE. */
+            *value = bus->timers[channel].mode;
+            bus->timers[channel].mode &= ~((1u << 11) | (1u << 12));
+        } else if (reg == 2u) {
+            *value = bus->timers[channel].target;
+        } else {
+            *value = 0u;
+        }
         return reg <= 2u;
     }
     if (address >= DMA_BASE && address < DMA_BASE + 0x70u) {
