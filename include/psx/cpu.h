@@ -33,6 +33,9 @@ int32_t psx_cpu_sign_extend16(uint16_t immediate);
 int32_t psx_cpu_sign_extend8(uint8_t immediate);
 
 /* Executes one MIPS R3000A instruction. Branch delay slots are modeled. */
+struct psx_bus;
+psx_cpu_step_result_t psx_cpu_step_bus(psx_cpu_t *cpu, psx_memory_t *memory,
+                                       struct psx_bus *bus);
 psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory);
 
 #endif
