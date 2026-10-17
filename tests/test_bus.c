@@ -69,6 +69,20 @@ int main(void)
     assert((value & (1u << 23)) == 0u);
     assert(bus.gpu_gp0_write_count == 5u);
     assert(bus.gpu_gp1_write_count == 2u);
+    /* GP1 reset restores the modeled drawing environment and status. */
+    bus.gpu_draw_mode = 0x1234u;
+    bus.gpu_mask_setting = 3u;
+    assert(psx_bus_write32(&bus, 0x1f801814u, 0x00000000u));
+    assert(bus.gpu_draw_mode == 0u && bus.gpu_mask_setting == 0u);
+    assert(psx_bus_read32(&bus, 0x1f801814u, &value) && value == 0x14802000u);
+    /* Byte/halfword accesses to word-only GPU ports are rejected explicitly. */
+    {
+        uint8_t byte = 0u;
+        uint16_t half = 0u;
+        assert(!psx_bus_read8(&bus, 0x1f801810u, &byte));
+        assert(!psx_bus_write8(&bus, 0x1f801810u, 0x12u));
+        assert(!psx_bus_read16(&bus, 0x1f801814u, &half));
+    }
     assert(!psx_bus_read32(&bus, 0x1f801000u, &value));
 
     puts("PSXBlaster360 bus/device tests: PASS");
