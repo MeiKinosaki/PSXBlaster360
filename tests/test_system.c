@@ -39,7 +39,7 @@ int main(void)
     assert(system.cpu.cop0_epc == 0x40u);
     assert(((system.cpu.cop0_cause >> 2) & 31u) == 0u);
     assert((system.cpu.cop0_cause & (1u << 10)) != 0u);
-    assert(system.cpu.pc == 0xbfc00180u);
+    assert(system.cpu.pc == 0x80000080u);
     assert(system.cpu.gpr[2] == 5u); /* interrupted instruction was not retired */
 
     /* A pending IRQ is masked when global IE is clear. */
