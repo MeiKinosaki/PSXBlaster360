@@ -2,10 +2,15 @@
 
 **Objetivo:** emulador de PlayStation (PS1) para Xbox 360 com RGH.
 
-- Versão de desenvolvimento: **v3.6.27b**
+- Versão de desenvolvimento: **v3.6.29b**
 - Alvo final: **`default.xex`**
 - Estado: CPU MIPS parcial, RAM de 2 MiB, interface de carregamento de BIOS de 512 KiB e camada inicial de dispositivos.
 - **Ainda não existe `default.xex` validado.**
+
+## Avanços v3.6.29b
+
+- Temporizador: no modo modelado de reinício no alvo, os ciclos excedentes agora são preservados como valor residual do contador em vez de serem descartados.
+- Teste de regressão: o contador é verificado após 25 ciclos com alvo 10, modo de reinício no alvo habilitado e valor residual esperado 5.
 
 ## Avanços v3.6.28b
 
