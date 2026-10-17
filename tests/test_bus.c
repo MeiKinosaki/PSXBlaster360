@@ -32,6 +32,13 @@ int main(void)
     assert(psx_bus_write32(&bus, 0x1f8010f0u, 0x07654b21u));
     assert(psx_bus_read32(&bus, 0x1f8010f0u, &value) && value == 0x07654b21u);
 
+    /* Large cycle deltas must wrap the 16-bit timer without 32-bit overflow. */
+    bus.timers[1].count = 0xfff0u;
+    bus.timers[1].target = 0u;
+    psx_bus_tick(&bus, 0x10020u);
+    assert(bus.timers[1].count == 0x0010u);
+    assert((bus.timers[1].mode & (1u << 12)) != 0u);
+
     /* Manual RAM-to-GPU DMA channel 2 transfers two GP0 words. */
     assert(psx_memory_write32(&memory, 0x200u, 0xe1001111u));
     assert(psx_memory_write32(&memory, 0x204u, 0xe6000001u));
