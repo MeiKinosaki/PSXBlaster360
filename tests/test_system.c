@@ -46,6 +46,23 @@ int main(void)
         assert(byte == 0x80u);
     }
 
+    /* LBU/LHU in the integrated CPU path must use the bus accessors. */
+    system.cpu.gpr[8] = 0x300u;
+    assert(psx_memory_write8(&system.memory, 0x302u, 0xa5u));
+    assert(psx_memory_write16(&system.memory, 0x304u, 0x9876u));
+    assert(psx_memory_write32(&system.memory, 12u, 0x910a0002u)); /* LBU t2,2(t0) */
+    assert(psx_memory_write32(&system.memory, 16u, 0x950b0004u)); /* LHU t3,4(t0) */
+    assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_OK);
+    assert(system.cpu.gpr[10] == 0xa5u);
+    assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_OK);
+    assert(system.cpu.gpr[11] == 0x9876u);
+
+    /* LHU misalignment raises AdEL and records BadVAddr. */
+    assert(psx_memory_write32(&system.memory, 20u, 0x950b0003u));
+    assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_EXCEPTION);
+    assert(system.cpu.cop0_bad_vaddr == 0x303u);
+    assert(((system.cpu.cop0_cause >> 2) & 31u) == 4u);
+
     /* Halfword bus rejects MMIO sub-word access instead of corrupting a register. */
     assert(!psx_bus_write16(&system.bus, 0x1f801810u, 0x1234u));
     puts("PSXBlaster360 system integration tests: PASS");
