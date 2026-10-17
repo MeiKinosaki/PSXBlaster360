@@ -13,8 +13,6 @@
 #define GPU_GP1    0x1f801814u
 #define DMA_IRQ_BIT(channel) (1u << (24u + (channel)))
 #define DMA_IRQ_ENABLE(channel) (1u << (16u + (channel)))
-#define DMA_IRQ_BIT(channel) (1u << (24u + (channel)))
-#define DMA_IRQ_ENABLE(channel) (1u << (16u + (channel)))
 
 void psx_bus_init(psx_bus_t *bus, psx_memory_t *memory)
 {
