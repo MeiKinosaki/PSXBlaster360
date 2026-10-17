@@ -40,6 +40,40 @@ void psx_bus_gpu_gp0_write(psx_bus_t *bus, uint32_t value)
     }
 }
 
+static bool bus_word_only_mmio(uint32_t address)
+{
+    return address == GPU_GP0 || address == GPU_GP1 ||
+           address == IRQ_STATUS || address == IRQ_MASK ||
+           (address >= TIMER_BASE && address < TIMER_BASE + 0x30u) ||
+           (address >= DMA_BASE && address < DMA_BASE + 0x70u) ||
+           address == DPCR_ADDR || address == DICR_ADDR;
+}
+
+bool psx_bus_read8(psx_bus_t *bus, uint32_t address, uint8_t *value)
+{
+    if (bus == NULL || value == NULL || bus_word_only_mmio(address)) return false;
+    return bus->memory != NULL && psx_memory_read8(bus->memory, address, value);
+}
+
+bool psx_bus_read16(psx_bus_t *bus, uint32_t address, uint16_t *value)
+{
+    if (bus == NULL || value == NULL || (address & 1u) != 0u ||
+        bus_word_only_mmio(address)) return false;
+    return bus->memory != NULL && psx_memory_read16(bus->memory, address, value);
+}
+
+bool psx_bus_write8(psx_bus_t *bus, uint32_t address, uint8_t value)
+{
+    if (bus == NULL || bus_word_only_mmio(address)) return false;
+    return bus->memory != NULL && psx_memory_write8(bus->memory, address, value);
+}
+
+bool psx_bus_write16(psx_bus_t *bus, uint32_t address, uint16_t value)
+{
+    if (bus == NULL || (address & 1u) != 0u || bus_word_only_mmio(address)) return false;
+    return bus->memory != NULL && psx_memory_write16(bus->memory, address, value);
+}
+
 bool psx_bus_read32(psx_bus_t *bus, uint32_t address, uint32_t *value)
 {
     uint32_t offset, channel, reg;
