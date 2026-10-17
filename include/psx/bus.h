@@ -41,7 +41,11 @@ typedef struct psx_bus {
 } psx_bus_t;
 
 void psx_bus_init(psx_bus_t *bus, psx_memory_t *memory);
+bool psx_bus_read8(psx_bus_t *bus, uint32_t address, uint8_t *value);
+bool psx_bus_read16(psx_bus_t *bus, uint32_t address, uint16_t *value);
 bool psx_bus_read32(psx_bus_t *bus, uint32_t address, uint32_t *value);
+bool psx_bus_write8(psx_bus_t *bus, uint32_t address, uint8_t value);
+bool psx_bus_write16(psx_bus_t *bus, uint32_t address, uint16_t value);
 bool psx_bus_write32(psx_bus_t *bus, uint32_t address, uint32_t value);
 void psx_bus_tick(psx_bus_t *bus, uint32_t cycles);
 void psx_bus_gpu_gp0_write(psx_bus_t *bus, uint32_t value);
