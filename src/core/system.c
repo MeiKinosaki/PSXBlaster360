@@ -16,7 +16,7 @@ psx_cpu_step_result_t psx_system_step(psx_system_t *system, uint32_t device_cycl
 {
     psx_cpu_step_result_t result;
     if (system == NULL) return PSX_CPU_STEP_MEMORY_FAULT;
-    result = psx_cpu_step(&system->cpu, &system->memory);
+    result = psx_cpu_step_bus(&system->cpu, &system->memory, &system->bus);
     if (result == PSX_CPU_STEP_OK) {
         psx_bus_tick(&system->bus, device_cycles);
         system->cycles += device_cycles;
