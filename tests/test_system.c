@@ -50,6 +50,10 @@ int main(void)
     assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_OK);
     assert(system.cpu.gpr[3] == 9u);
 
+    /* Resume the sequential MMIO integration checks at their expected PC. */
+    system.cpu.pc = 4u;
+    system.cpu.next_pc = 8u;
+
     /* CPU SW reaches the GPU GP0 register through the integrated MMIO bus. */
     system.cpu.gpr[8] = 0x1f801810u; /* t0 = GP0 */
     system.cpu.gpr[9] = 0xe1002222u; /* t1 = GP0 draw-mode command */
