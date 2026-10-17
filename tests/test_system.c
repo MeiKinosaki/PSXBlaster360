@@ -50,6 +50,16 @@ int main(void)
     assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_OK);
     assert(system.cpu.gpr[3] == 9u);
 
+    /* A pending source outside I_MASK must not assert external IP2. */
+    system.cpu.pc = 0x48u;
+    system.cpu.next_pc = 0x4cu;
+    system.cpu.cop0_status = (1u << 10) | 1u;
+    system.bus.irq_mask = 0u;
+    assert(psx_memory_write32(&system.memory, 0x48u, 0x240c000bu));
+    assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_OK);
+    assert(system.cpu.gpr[12] == 11u);
+    assert((system.cpu.cop0_cause & (1u << 10)) == 0u);
+
     /* Resume the sequential MMIO integration checks at their expected PC. */
     system.cpu.pc = 4u;
     system.cpu.next_pc = 8u;
