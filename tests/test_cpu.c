@@ -18,6 +18,7 @@ int main(void)
 {
     static psx_memory_t memory;
     psx_cpu_t cpu;
+    uint32_t value = 0u;
 
     psx_memory_init(&memory);
     psx_cpu_reset(&cpu);
@@ -94,6 +95,32 @@ int main(void)
     { uint8_t byte = 0; assert(psx_memory_read8(&memory, 0x308u, &byte) && byte == 0x80u); }
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
     { uint16_t half = 0; assert(psx_memory_read16(&memory, 0x30au, &half) && half == 0x8001u); }
+
+    /* LWL/LWR merge bytes from adjacent aligned words. */
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u; cpu.gpr[1] = 0x400u;
+    cpu.gpr[2] = 0xaabbccddu;
+    assert(psx_memory_write32(&memory, 0x400u, 0x11223344u));
+    assert(psx_memory_write32(&memory, 0x404u, 0x55667788u));
+    assert(psx_memory_write32(&memory, 0u, i_type(0x22, 1, 2, 1))); /* LWL v0,1(at) */
+    assert(psx_memory_write32(&memory, 4u, i_type(0x26, 1, 2, 2))); /* LWR v0,2(at) */
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[2] == 0x223344ddu);
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[2] == 0x77885566u);
+
+    /* SWL/SWR update only the addressed byte lanes of the aligned word. */
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u; cpu.gpr[1] = 0x420u; cpu.gpr[2] = 0xa1b2c3d4u;
+    assert(psx_memory_write32(&memory, 0x420u, 0x11223344u));
+    assert(psx_memory_write32(&memory, 0u, i_type(0x2a, 1, 2, 1))); /* SWL v0,1(at) */
+    assert(psx_memory_write32(&memory, 4u, i_type(0x2e, 1, 2, 2))); /* SWR v0,2(at) */
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(psx_memory_read32(&memory, 0x420u, &value));
+    assert(value == 0x1122a1b2u);
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(psx_memory_read32(&memory, 0x420u, &value));
+    assert(value == 0xc3d4a1b2u);
 
     /* Unaligned halfword access must fault without retiring. */
     cpu.pc = 88u; cpu.next_pc = 92u;
