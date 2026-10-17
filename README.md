@@ -2,10 +2,17 @@
 
 **Objetivo:** emulador de PlayStation (PS1) para Xbox 360 com RGH.
 
-- Versão de desenvolvimento: **v3.6.30b**
+- Versão de desenvolvimento: **v3.6.31b**
 - Alvo final: **`default.xex`**
 - Estado: CPU MIPS parcial, RAM de 2 MiB, interface de carregamento de BIOS de 512 KiB e camada inicial de dispositivos.
 - **Ainda não existe `default.xex` validado.**
+
+## Avanços v3.6.31b
+
+- Regressão corrigida: a sequência dos testes de sistema agora restaura explicitamente o PC antes dos testes MMIO de GPU, evitando que os testes de IRQ alterem o endereço de execução esperado.
+- IRQ/COP0: testes adicionais verificam que uma fonte fora de I_MASK não levanta IP2 e que uma interrupção reconhecida antes da instrução de delay slot registra EPC do branch e Cause.BD.
+- Validação: a suíte de testes de host passou no commit de código/testes anterior à atualização desta versão. A nova revisão de documentação/versão dispara uma nova execução de CI.
+- Sem mudança na declaração de compatibilidade: o caminho de IRQ continua sendo um modelo inicial, ainda sem validação em hardware PS1 real ou Xbox 360.
 
 ## Avanços v3.6.30b
 
