@@ -239,10 +239,10 @@ void psx_bus_tick(psx_bus_t *bus, uint32_t cycles)
     dma_tick(bus);
     for (i = 0; i < PSX_BUS_TIMER_COUNT; ++i) {
         psx_timer_t *timer = &bus->timers[i];
-        uint32_t next = timer->count + cycles;
+        uint64_t next = (uint64_t)timer->count + (uint64_t)cycles;
         bool target_hit = timer->target != 0u && next >= timer->target;
         bool overflow = next > 0xffffu;
-        timer->count = next & 0xffffu;
+        timer->count = (uint32_t)(next & 0xffffu);
         if (target_hit) {
             timer->mode |= 1u << 11;
             if (timer->mode & (1u << 4)) bus->irq_status |= 1u << (4u + i);
