@@ -2,10 +2,16 @@
 
 **Objetivo:** emulador de PlayStation (PS1) para Xbox 360 com RGH.
 
-- Versão de desenvolvimento: **v3.6.29b**
+- Versão de desenvolvimento: **v3.6.30b**
 - Alvo final: **`default.xex`**
 - Estado: CPU MIPS parcial, RAM de 2 MiB, interface de carregamento de BIOS de 512 KiB e camada inicial de dispositivos.
 - **Ainda não existe `default.xex` validado.**
+
+## Avanços v3.6.30b
+
+- CPU/COP0: a CPU integrada consulta IRQ pendentes e mascaradas no barramento, reflete a linha externa no bit IP2 de Cause e entra na exceção de interrupção apenas quando IEc e a máscara correspondente estão habilitados.
+- Exceção: a instrução interrompida não é aposentada; o EPC e o vetor normal de exceção são verificados em teste.
+- Testes de sistema: cobrem IRQ externa habilitada e IRQ pendente com interrupções globais desabilitadas. É um modelo inicial; ainda faltam validação de prioridades/temporização e comparação com hardware real.
 
 ## Avanços v3.6.29b
 
@@ -31,6 +37,6 @@
 
 ## Limitações importantes
 
-A CPU agora encaminha buscas de instrução e acessos LB/LBU/LH/LHU/SB/SH/LW/SW pelo barramento no sistema integrado. Os acessos de byte/meia-palavra à RAM funcionam; registradores MMIO que exigem palavras inteiras recusam acessos menores. A integração MMIO continua parcial. Timers são simplificados; DMA agora transfere palavras em modo manual RAM→GPU no canal 2, mas os demais modos/canais não transferem dados. A GPU ainda não rasteriza. O carregador de BIOS aceita uma imagem fornecida pelo usuário; ainda não há boot completo validado. CD-ROM, SPU, controladores e interface Xbox 360 seguem pendentes.
+A CPU agora encaminha buscas de instrução e acessos LB/LBU/LH/LHU/SB/SH/LW/SW pelo barramento no sistema integrado. Os acessos de byte/meia-palavra à RAM funcionam; registradores MMIO que exigem palavras inteiras recusam acessos menores. A integração MMIO continua parcial. A entrega de interrupção externa para COP0 está modelada de forma inicial em v3.6.30b e ainda precisa de testes mais completos. Timers são simplificados; DMA agora transfere palavras em modo manual RAM→GPU no canal 2, mas os demais modos/canais não transferem dados. A GPU ainda não rasteriza. O carregador de BIOS aceita uma imagem fornecida pelo usuário; ainda não há boot completo validado. CD-ROM, SPU, controladores e interface Xbox 360 seguem pendentes.
 
 Os testes Linux não comprovam compatibilidade com Xbox 360. Renomear um ELF não o converte em XEX; `default.xex` ainda precisa ser gerado e validado com toolchain apropriada.
