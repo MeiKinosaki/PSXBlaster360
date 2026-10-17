@@ -293,6 +293,34 @@ static psx_cpu_step_result_t cpu_step_internal(psx_cpu_t *cpu, psx_memory_t *mem
         }
         if (rt) cpu->gpr[rt] = result;
         break;
+    case 0x22u: /* LWL: merge the addressed left portion of an aligned word. */
+        address = a + (uint32_t)psx_cpu_sign_extend16(imm);
+        {
+            uint32_t word, aligned = address & ~3u;
+            if (!cpu_read32(memory, bus, aligned, &word)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+            switch (address & 3u) {
+            case 0u: result = (b & 0x00ffffffu) | (word << 24); break;
+            case 1u: result = (b & 0x0000ffffu) | (word << 16); break;
+            case 2u: result = (b & 0x000000ffu) | (word << 8); break;
+            default: result = word; break;
+            }
+        }
+        if (rt) cpu->gpr[rt] = result;
+        break;
+    case 0x26u: /* LWR: merge the addressed right portion of an aligned word. */
+        address = a + (uint32_t)psx_cpu_sign_extend16(imm);
+        {
+            uint32_t word, aligned = address & ~3u;
+            if (!cpu_read32(memory, bus, aligned, &word)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+            switch (address & 3u) {
+            case 0u: result = word; break;
+            case 1u: result = (b & 0xff000000u) | (word >> 8); break;
+            case 2u: result = (b & 0xffff0000u) | (word >> 16); break;
+            default: result = (b & 0xffffff00u) | (word >> 24); break;
+            }
+        }
+        if (rt) cpu->gpr[rt] = result;
+        break;
     case 0x28u: /* SB */
         address = a + (uint32_t)psx_cpu_sign_extend16(imm);
         if (!cpu_write8(memory, bus, address, (uint8_t)b)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
@@ -301,6 +329,34 @@ static psx_cpu_step_result_t cpu_step_internal(psx_cpu_t *cpu, psx_memory_t *mem
         address = a + (uint32_t)psx_cpu_sign_extend16(imm);
         if ((address & 1u) != 0u) { cpu->cop0_bad_vaddr = address; return raise_exception(cpu, old_pc, PSX_EXC_ADES); }
         if (!cpu_write16(memory, bus, address, (uint16_t)b)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+        break;
+    case 0x2au: /* SWL: merge the addressed left portion into an aligned word. */
+        address = a + (uint32_t)psx_cpu_sign_extend16(imm);
+        {
+            uint32_t word, aligned = address & ~3u;
+            if (!cpu_read32(memory, bus, aligned, &word)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+            switch (address & 3u) {
+            case 0u: word = (word & 0xffffff00u) | (b >> 24); break;
+            case 1u: word = (word & 0xffff0000u) | (b >> 16); break;
+            case 2u: word = (word & 0xff000000u) | (b >> 8); break;
+            default: word = b; break;
+            }
+            if (!cpu_write32(memory, bus, aligned, word)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+        }
+        break;
+    case 0x2eu: /* SWR: merge the addressed right portion into an aligned word. */
+        address = a + (uint32_t)psx_cpu_sign_extend16(imm);
+        {
+            uint32_t word, aligned = address & ~3u;
+            if (!cpu_read32(memory, bus, aligned, &word)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+            switch (address & 3u) {
+            case 0u: word = b; break;
+            case 1u: word = (word & 0x000000ffu) | (b << 8); break;
+            case 2u: word = (word & 0x0000ffffu) | (b << 16); break;
+            default: word = (word & 0x00ffffffu) | (b << 24); break;
+            }
+            if (!cpu_write32(memory, bus, aligned, word)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+        }
         break;
     case 0x23u: /* LW */
         address = a + (uint32_t)psx_cpu_sign_extend16(imm);
