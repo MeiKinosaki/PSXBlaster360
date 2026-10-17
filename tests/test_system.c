@@ -60,6 +60,24 @@ int main(void)
     assert(system.cpu.gpr[12] == 11u);
     assert((system.cpu.cop0_cause & (1u << 10)) == 0u);
 
+    /* An IRQ recognized before a branch delay-slot instruction records BD/EPC. */
+    system.cpu.pc = 0x50u;
+    system.cpu.next_pc = 0x54u;
+    system.cpu.branch_delay_pending = 0u;
+    system.cpu.cop0_status = 0u;
+    system.cpu.cop0_cause = 0u;
+    system.bus.irq_mask = 1u << 4;
+    system.bus.irq_status = 1u << 4;
+    assert(psx_memory_write32(&system.memory, 0x50u, 0x10000001u)); /* BEQ zero,zero,+1 */
+    assert(psx_memory_write32(&system.memory, 0x54u, 0x24050001u)); /* delay slot */
+    assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_OK);
+    assert(system.cpu.branch_delay_pending == 1u);
+    system.cpu.cop0_status = (1u << 10) | 1u;
+    assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_EXCEPTION);
+    assert(system.cpu.cop0_epc == 0x50u);
+    assert((system.cpu.cop0_cause & 0x80000000u) != 0u);
+    assert(system.cpu.gpr[5] == 0u);
+
     /* Resume the sequential MMIO integration checks at their expected PC. */
     system.cpu.pc = 4u;
     system.cpu.next_pc = 8u;
