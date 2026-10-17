@@ -7,7 +7,11 @@
 - Estado: CPU MIPS parcial, RAM de 2 MiB, interface de carregamento de BIOS de 512 KiB e camada inicial de dispositivos.
 - **Ainda não existe `default.xex` validado.**
 
-## Avanços v3.6.27b
+## Avanços v3.6.28b
+
+- CPU/barramento: `LBU` e `LHU` também usam os acessores do barramento no caminho integrado; `LHU` desalinhado gera exceção AdEL e atualiza `BadVAddr`.
+- Temporizadores: soma de ciclos usa aritmética de 64 bits para evitar overflow intermediário; leitura do registrador MODE devolve e limpa os flags de alvo/overflow modelados.
+- Testes: adicionados casos integrados de `LBU`, `LHU` e `SH`, exceção por desalinhamento, wrap de timer com delta grande, limpeza dos flags de timer e reset de estado GP1/subacessos MMIO.
 
 - CPU/Sistema: busca de instrução e acessos `LB/LBU/LH/LHU/SB/SH/LW/SW` passam pela camada de barramento no modo integrado. Teste de `SW` para GP0 e `SB` para RAM adicionados.
 - Barramento: adicionados acessores de 8/16 bits para RAM; subacessos a registradores MMIO de palavra inteira são recusados com segurança.
