@@ -25,6 +25,9 @@ int main(void)
     psx_bus_tick(&bus, 12u);
     assert((bus.timers[0].mode & (1u << 11)) != 0u);
     assert((bus.irq_status & (1u << 4)) != 0u);
+    assert(psx_bus_read32(&bus, 0x1f801104u, &value));
+    assert((value & (1u << 11)) != 0u);
+    assert((bus.timers[0].mode & (1u << 11)) == 0u);
 
     assert(psx_bus_write32(&bus, 0x1f801080u, 0x00123456u)); /* DMA0 MADR */
     assert(psx_bus_write32(&bus, 0x1f801084u, 0x00010002u));
