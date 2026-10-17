@@ -112,6 +112,21 @@ static psx_cpu_step_result_t cpu_step_internal(psx_cpu_t *cpu, psx_memory_t *mem
 
     old_pc = cpu->pc;
     was_delay_slot = cpu->branch_delay_pending;
+
+    /*
+     * The PS1 interrupt controller is summarized as COP0 Cause.IP2.
+     * Only a source enabled in I_MASK asserts the external interrupt line.
+     */
+    if (bus != NULL) {
+        if ((bus->irq_status & bus->irq_mask & 0x7ffu) != 0u)
+            cpu->cop0_cause |= 1u << 10;
+        else
+            cpu->cop0_cause &= ~(1u << 10);
+    }
+    if ((cpu->cop0_status & 1u) != 0u &&
+        (cpu->cop0_status & cpu->cop0_cause & 0x0000ff00u) != 0u)
+        return raise_exception(cpu, old_pc, 0u);
+
     if ((old_pc & 3u) != 0u) { cpu->cop0_bad_vaddr = old_pc; return raise_exception(cpu, old_pc, PSX_EXC_ADEL); }
     if (!cpu_read32(memory, bus, old_pc, &instruction))
         return PSX_CPU_STEP_MEMORY_FAULT;
