@@ -34,6 +34,20 @@ int main(void)
     assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_OK);
     assert(system.bus.gpu_draw_mode == 0x2222u);
     assert(system.bus.gpu_gp0_write_count == 1u);
+
+    /* Byte store now travels through the integrated bus to RAM. */
+    system.cpu.gpr[8] = 0x300u;
+    system.cpu.gpr[9] = 0x80u;
+    assert(psx_memory_write32(&system.memory, 8u, 0xa1090001u)); /* SB t1,1(t0) */
+    assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_OK);
+    {
+        uint8_t byte = 0u;
+        assert(psx_memory_read8(&system.memory, 0x301u, &byte));
+        assert(byte == 0x80u);
+    }
+
+    /* Halfword bus rejects MMIO sub-word access instead of corrupting a register. */
+    assert(!psx_bus_write16(&system.bus, 0x1f801810u, 0x1234u));
     puts("PSXBlaster360 system integration tests: PASS");
     return 0;
 }
