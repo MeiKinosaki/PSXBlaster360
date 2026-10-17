@@ -103,7 +103,7 @@ int main(void)
     assert(psx_memory_write32(&memory, 0x400u, 0x11223344u));
     assert(psx_memory_write32(&memory, 0x404u, 0x55667788u));
     assert(psx_memory_write32(&memory, 0u, i_type(0x22, 1, 2, 1))); /* LWL v0,1(at) */
-    assert(psx_memory_write32(&memory, 4u, i_type(0x26, 1, 2, 2))); /* LWR v0,2(at) */
+    assert(psx_memory_write32(&memory, 4u, i_type(0x26, 1, 2, 6))); /* LWR v0,2(at) */
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
     assert(cpu.gpr[2] == 0x3344ccddu);
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
