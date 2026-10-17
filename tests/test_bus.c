@@ -29,6 +29,13 @@ int main(void)
     assert((value & (1u << 11)) != 0u);
     assert((bus.timers[0].mode & (1u << 11)) == 0u);
 
+    /* Target-reset mode retains cycles beyond the target. */
+    assert(psx_bus_write32(&bus, 0x1f801104u, (1u << 3) | (1u << 4)));
+    assert(psx_bus_write32(&bus, 0x1f801108u, 10u));
+    psx_bus_tick(&bus, 25u);
+    assert(bus.timers[0].count == 5u);
+    assert((bus.timers[0].mode & (1u << 11)) != 0u);
+
     assert(psx_bus_write32(&bus, 0x1f801080u, 0x00123456u)); /* DMA0 MADR */
     assert(psx_bus_write32(&bus, 0x1f801084u, 0x00010002u));
     assert(psx_bus_read32(&bus, 0x1f801080u, &value) && value == 0x00123456u);
