@@ -11,7 +11,7 @@
 
 - CPU/COP0: a CPU integrada consulta IRQ pendentes e mascaradas no barramento, reflete a linha externa no bit IP2 de Cause e entra na exceção de interrupção apenas quando IEc e a máscara correspondente estão habilitados.
 - Exceção: a instrução interrompida não é aposentada; o EPC e o vetor normal de exceção são verificados em teste.
-- Testes de sistema: cobrem IRQ externa habilitada e IRQ pendente com interrupções globais desabilitadas. É um modelo inicial; ainda faltam validação de prioridades/temporização e comparação com hardware real.
+- Testes de sistema: cobrem IRQ externa habilitada, fonte fora de I_MASK, interrupções globais desabilitadas e metadados EPC/BD quando a interrupção é reconhecida na janela de delay slot. A suíte de host passou após corrigir a sequência de PC dos testes integrados; ainda faltam validação de prioridades/temporização e comparação com hardware real.
 
 ## Avanços v3.6.29b
 
