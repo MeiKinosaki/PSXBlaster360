@@ -63,6 +63,19 @@ int main(void)
     assert(system.cpu.cop0_bad_vaddr == 0x303u);
     assert(((system.cpu.cop0_cause >> 2) & 31u) == 4u);
 
+    /* SH also uses the integrated bus, while sub-word GPU MMIO stays blocked. */
+    system.cpu.pc = 24u;
+    system.cpu.next_pc = 28u;
+    system.cpu.gpr[8] = 0x300u;
+    system.cpu.gpr[11] = 0x1357u;
+    assert(psx_memory_write32(&system.memory, 24u, 0xa50b0006u)); /* SH t3,6(t0) */
+    assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_OK);
+    {
+        uint16_t half = 0u;
+        assert(psx_memory_read16(&system.memory, 0x306u, &half));
+        assert(half == 0x1357u);
+    }
+
     /* Halfword bus rejects MMIO sub-word access instead of corrupting a register. */
     assert(!psx_bus_write16(&system.bus, 0x1f801810u, 0x1234u));
     puts("PSXBlaster360 system integration tests: PASS");
