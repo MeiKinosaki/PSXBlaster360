@@ -1,4 +1,5 @@
 #include "psx/cpu.h"
+#include "psx/bus.h"
 
 #include <stddef.h>
 #include <limits.h>
@@ -63,7 +64,20 @@ static psx_cpu_step_result_t raise_exception(psx_cpu_t *cpu, uint32_t old_pc,
     return PSX_CPU_STEP_EXCEPTION;
 }
 
-psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
+static bool cpu_read32(psx_memory_t *memory, psx_bus_t *bus, uint32_t address, uint32_t *value)
+{
+    return bus != NULL ? psx_bus_read32(bus, address, value)
+                       : psx_memory_read32(memory, address, value);
+}
+
+static bool cpu_write32(psx_memory_t *memory, psx_bus_t *bus, uint32_t address, uint32_t value)
+{
+    return bus != NULL ? psx_bus_write32(bus, address, value)
+                       : psx_memory_write32(memory, address, value);
+}
+
+static psx_cpu_step_result_t cpu_step_internal(psx_cpu_t *cpu, psx_memory_t *memory,
+                                               psx_bus_t *bus)
 {
     uint32_t instruction, old_pc, rs, rt, rd, shamt, opcode, funct, address;
     uint16_t imm;
@@ -75,7 +89,7 @@ psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
     old_pc = cpu->pc;
     was_delay_slot = cpu->branch_delay_pending;
     if ((old_pc & 3u) != 0u) { cpu->cop0_bad_vaddr = old_pc; return raise_exception(cpu, old_pc, PSX_EXC_ADEL); }
-    if (!psx_memory_read32(memory, old_pc, &instruction))
+    if (!cpu_read32(memory, bus, old_pc, &instruction))
         return PSX_CPU_STEP_MEMORY_FAULT;
 
     opcode = instruction >> 26;
@@ -251,13 +265,13 @@ psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
     case 0x23u: /* LW */
         address = a + (uint32_t)psx_cpu_sign_extend16(imm);
         if ((address & 3u) != 0u) { cpu->cop0_bad_vaddr = address; return raise_exception(cpu, old_pc, PSX_EXC_ADEL); }
-        if (!psx_memory_read32(memory, address, &result)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+        if (!cpu_read32(memory, bus, address, &result)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
         if (rt) cpu->gpr[rt] = result;
         break;
     case 0x2bu: /* SW */
         address = a + (uint32_t)psx_cpu_sign_extend16(imm);
         if ((address & 3u) != 0u) { cpu->cop0_bad_vaddr = address; return raise_exception(cpu, old_pc, PSX_EXC_ADES); }
-        if (!psx_memory_write32(memory, address, b)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+        if (!cpu_write32(memory, bus, address, b)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
         break;
     default:
         return raise_exception(cpu, old_pc, PSX_EXC_RI);
@@ -267,4 +281,17 @@ psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
     if (was_delay_slot) cpu->branch_delay_pending = 0u;
     cpu->instructions_retired++;
     return PSX_CPU_STEP_OK;
+}
+
+
+psx_cpu_step_result_t psx_cpu_step(psx_cpu_t *cpu, psx_memory_t *memory)
+{
+    return cpu_step_internal(cpu, memory, NULL);
+}
+
+psx_cpu_step_result_t psx_cpu_step_bus(psx_cpu_t *cpu, psx_memory_t *memory,
+                                       psx_bus_t *bus)
+{
+    if (bus == NULL) return PSX_CPU_STEP_MEMORY_FAULT;
+    return cpu_step_internal(cpu, memory, bus);
 }
