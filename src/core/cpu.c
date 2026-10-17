@@ -64,6 +64,30 @@ static psx_cpu_step_result_t raise_exception(psx_cpu_t *cpu, uint32_t old_pc,
     return PSX_CPU_STEP_EXCEPTION;
 }
 
+static bool cpu_read8(psx_memory_t *memory, psx_bus_t *bus, uint32_t address, uint8_t *value)
+{
+    return bus != NULL ? psx_bus_read8(bus, address, value)
+                       : psx_memory_read8(memory, address, value);
+}
+
+static bool cpu_read16(psx_memory_t *memory, psx_bus_t *bus, uint32_t address, uint16_t *value)
+{
+    return bus != NULL ? psx_bus_read16(bus, address, value)
+                       : psx_memory_read16(memory, address, value);
+}
+
+static bool cpu_write8(psx_memory_t *memory, psx_bus_t *bus, uint32_t address, uint8_t value)
+{
+    return bus != NULL ? psx_bus_write8(bus, address, value)
+                       : psx_memory_write8(memory, address, value);
+}
+
+static bool cpu_write16(psx_memory_t *memory, psx_bus_t *bus, uint32_t address, uint16_t value)
+{
+    return bus != NULL ? psx_bus_write16(bus, address, value)
+                       : psx_memory_write16(memory, address, value);
+}
+
 static bool cpu_read32(psx_memory_t *memory, psx_bus_t *bus, uint32_t address, uint32_t *value)
 {
     return bus != NULL ? psx_bus_read32(bus, address, value)
@@ -220,7 +244,7 @@ static psx_cpu_step_result_t cpu_step_internal(psx_cpu_t *cpu, psx_memory_t *mem
         address = a + (uint32_t)psx_cpu_sign_extend16(imm);
         {
             uint8_t byte;
-            if (!psx_memory_read8(memory, address, &byte)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+            if (!cpu_read8(memory, bus, address, &byte)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
             result = (uint32_t)psx_cpu_sign_extend8(byte);
         }
         if (rt) cpu->gpr[rt] = result;
@@ -230,7 +254,7 @@ static psx_cpu_step_result_t cpu_step_internal(psx_cpu_t *cpu, psx_memory_t *mem
         {
             uint16_t half;
             if ((address & 1u) != 0u) { cpu->cop0_bad_vaddr = address; return raise_exception(cpu, old_pc, PSX_EXC_ADEL); }
-            if (!psx_memory_read16(memory, address, &half)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+            if (!cpu_read16(memory, bus, address, &half)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
             result = (uint32_t)(int32_t)(int16_t)half;
         }
         if (rt) cpu->gpr[rt] = result;
@@ -255,12 +279,12 @@ static psx_cpu_step_result_t cpu_step_internal(psx_cpu_t *cpu, psx_memory_t *mem
         break;
     case 0x28u: /* SB */
         address = a + (uint32_t)psx_cpu_sign_extend16(imm);
-        if (!psx_memory_write8(memory, address, (uint8_t)b)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+        if (!cpu_write8(memory, bus, address, (uint8_t)b)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
         break;
     case 0x29u: /* SH */
         address = a + (uint32_t)psx_cpu_sign_extend16(imm);
         if ((address & 1u) != 0u) { cpu->cop0_bad_vaddr = address; return raise_exception(cpu, old_pc, PSX_EXC_ADES); }
-        if (!psx_memory_write16(memory, address, (uint16_t)b)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
+        if (!cpu_write16(memory, bus, address, (uint16_t)b)) { cpu->pc = old_pc; cpu->next_pc = old_pc + 4u; return PSX_CPU_STEP_MEMORY_FAULT; }
         break;
     case 0x23u: /* LW */
         address = a + (uint32_t)psx_cpu_sign_extend16(imm);
