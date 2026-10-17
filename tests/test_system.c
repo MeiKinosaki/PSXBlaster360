@@ -27,6 +27,29 @@ int main(void)
     assert(system.cycles == 12u);
     assert((system.bus.irq_status & (1u << 4)) != 0u);
 
+    /* External IRQ reaches COP0 only when Status.IEc and an IP mask are set. */
+    system.cpu.pc = 0x40u;
+    system.cpu.next_pc = 0x44u;
+    system.cpu.cop0_status = (1u << 10) | 1u; /* IM2 + global interrupt enable */
+    system.cpu.cop0_cause = 0u;
+    system.bus.irq_mask = 1u << 4;
+    system.bus.irq_status = 1u << 4;
+    assert(psx_memory_write32(&system.memory, 0x40u, 0x24020007u));
+    assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_EXCEPTION);
+    assert(system.cpu.cop0_epc == 0x40u);
+    assert(((system.cpu.cop0_cause >> 2) & 31u) == 0u);
+    assert((system.cpu.cop0_cause & (1u << 10)) != 0u);
+    assert(system.cpu.pc == 0xbfc00180u);
+    assert(system.cpu.gpr[2] == 5u); /* interrupted instruction was not retired */
+
+    /* A pending IRQ is masked when global IE is clear. */
+    system.cpu.pc = 0x44u;
+    system.cpu.next_pc = 0x48u;
+    system.cpu.cop0_status = 1u << 10;
+    assert(psx_memory_write32(&system.memory, 0x44u, 0x24030009u));
+    assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_OK);
+    assert(system.cpu.gpr[3] == 9u);
+
     /* CPU SW reaches the GPU GP0 register through the integrated MMIO bus. */
     system.cpu.gpr[8] = 0x1f801810u; /* t0 = GP0 */
     system.cpu.gpr[9] = 0xe1002222u; /* t1 = GP0 draw-mode command */
