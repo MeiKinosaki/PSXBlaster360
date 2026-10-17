@@ -26,6 +26,14 @@ int main(void)
     assert(system.cpu.gpr[2] == 5u);
     assert(system.cycles == 12u);
     assert((system.bus.irq_status & (1u << 4)) != 0u);
+
+    /* CPU SW reaches the GPU GP0 register through the integrated MMIO bus. */
+    system.cpu.gpr[8] = 0x1f801810u; /* t0 = GP0 */
+    system.cpu.gpr[9] = 0xe1002222u; /* t1 = GP0 draw-mode command */
+    assert(psx_memory_write32(&system.memory, 4u, 0xac090000u)); /* SW t1,0(t0) */
+    assert(psx_system_step(&system, 1u) == PSX_CPU_STEP_OK);
+    assert(system.bus.gpu_draw_mode == 0x2222u);
+    assert(system.bus.gpu_gp0_write_count == 1u);
     puts("PSXBlaster360 system integration tests: PASS");
     return 0;
 }
