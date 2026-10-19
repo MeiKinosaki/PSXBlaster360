@@ -230,6 +230,28 @@ static psx_cpu_step_result_t cpu_step_internal(psx_cpu_t *cpu, psx_memory_t *mem
         default: return raise_exception(cpu, old_pc, PSX_EXC_RI);
         }
         break;
+    case 0x01u: /* REGIMM branches */
+        switch (rt) {
+        case 0x00u: /* BLTZ */
+        case 0x01u: /* BGEZ */
+        case 0x10u: /* BLTZAL */
+        case 0x11u: /* BGEZAL */
+        {
+            bool ge_zero = (rt == 0x01u || rt == 0x11u);
+            bool link = (rt == 0x10u || rt == 0x11u);
+            bool taken = ge_zero ? signed_a >= 0 : signed_a < 0;
+            cpu->branch_delay_pending = 1u;
+            cpu->branch_pc = old_pc;
+            if (taken) {
+                if (link) cpu->gpr[31] = old_pc + 8u;
+                cpu->next_pc = branch_target(old_pc + 4u, imm);
+            }
+            break;
+        }
+        default:
+            return raise_exception(cpu, old_pc, PSX_EXC_RI);
+        }
+        break;
     case 0x02u: /* J */
         cpu->branch_delay_pending = 1u; cpu->branch_pc = old_pc;
         cpu->next_pc = (cpu->pc & 0xf0000000u) | ((instruction & 0x03ffffffu) << 2);
