@@ -2,10 +2,17 @@
 
 **Objetivo:** emulador de PlayStation (PS1) para Xbox 360 com RGH.
 
-- Versão de desenvolvimento: **v3.6.32b**
+- Versão de desenvolvimento: **v3.6.33b**
 - Alvo final: **`default.xex`**
 - Estado: CPU MIPS parcial, RAM de 2 MiB, interface de carregamento de BIOS de 512 KiB e camada inicial de dispositivos.
 - **Ainda não existe `default.xex` validado.**
+
+## Avanços v3.6.33b
+
+- CPU MIPS: implementado o grupo REGIMM com BLTZ, BGEZ, BLTZAL e BGEZAL, incluindo condição assinada, cálculo do destino e delay slot.
+- Link: BLTZAL/BGEZAL atualizam $ra (registrador 31) para PC+8 quando a condição do branch é satisfeita.
+- Testes de host: adicionados cenários de branch tomado e não tomado, execução do delay slot e comportamento de link.
+- Validação: a CI de host para v3.6.32b passou após corrigir o imediato do teste LWR para alcançar a palavra adjacente. A validação da nova v3.6.33b ainda precisa concluir.
 
 ## Avanços v3.6.32b
 
