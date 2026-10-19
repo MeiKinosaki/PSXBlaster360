@@ -60,6 +60,37 @@ int main(void)
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
     assert(cpu.gpr[14] == 0u && cpu.gpr[15] == 22u);
 
+    /* REGIMM branches: BLTZ/BGEZ and link variants honor delay slots. */
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u; cpu.gpr[1] = 0xffffffffu;
+    assert(psx_memory_write32(&memory, 0u, i_type(0x01, 1, 0x00, 2))); /* BLTZ at,+2 */
+    assert(psx_memory_write32(&memory, 4u, i_type(0x09, 0, 2, 7))); /* delay slot */
+    assert(psx_memory_write32(&memory, 8u, i_type(0x09, 0, 3, 8)));
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.pc == 4u && cpu.next_pc == 12u && cpu.branch_delay_pending == 1u);
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[2] == 7u && cpu.pc == 12u);
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[3] == 8u);
+
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u; cpu.gpr[1] = 1u;
+    assert(psx_memory_write32(&memory, 0u, i_type(0x01, 1, 0x01, 2))); /* BGEZ at,+2 */
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.next_pc == 12u);
+
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u; cpu.gpr[1] = 0xffffffffu;
+    assert(psx_memory_write32(&memory, 0u, i_type(0x01, 1, 0x10, 2))); /* BLTZAL at,+2 */
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[31] == 8u && cpu.next_pc == 12u);
+
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u; cpu.gpr[1] = 0xffffffffu;
+    assert(psx_memory_write32(&memory, 0u, i_type(0x01, 1, 0x11, 2))); /* BGEZAL not taken */
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[31] == 0u && cpu.next_pc == 8u);
+
     /* Unsupported opcodes stop without counting an instruction. */
     assert(psx_memory_write32(&memory, 44, 0xffffffffu));
     {
