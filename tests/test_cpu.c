@@ -65,7 +65,7 @@ int main(void)
     cpu.pc = 0u; cpu.next_pc = 4u; cpu.gpr[1] = 0xffffffffu;
     assert(psx_memory_write32(&memory, 0u, i_type(0x01, 1, 0x00, 2))); /* BLTZ at,+2 */
     assert(psx_memory_write32(&memory, 4u, i_type(0x09, 0, 2, 7))); /* delay slot */
-    assert(psx_memory_write32(&memory, 8u, i_type(0x09, 0, 3, 8)));
+    assert(psx_memory_write32(&memory, 12u, i_type(0x09, 0, 3, 8)));
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
     assert(cpu.pc == 4u && cpu.next_pc == 12u && cpu.branch_delay_pending == 1u);
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
