@@ -31,6 +31,19 @@ static uint32_t branch_target(uint32_t pc_after_instruction, uint16_t immediate)
     return pc_after_instruction + ((uint32_t)psx_cpu_sign_extend16(immediate) << 2);
 }
 
+/* Portable MIPS arithmetic right shift without relying on signed-shift rules. */
+static uint32_t arithmetic_shift_right(uint32_t value, uint32_t shift)
+{
+    shift &= 31u;
+    if (shift == 0u) return value;
+    value >>= shift;
+    if ((value & (1u << (31u - shift))) != 0u) {
+        /* The shifted sign bit is still set: restore the sign-extension bits. */
+        value |= (~0u << (32u - shift));
+    }
+    return value;
+}
+
 enum {
     PSX_EXC_SYS = 8,
     PSX_EXC_BP = 9,
@@ -180,10 +193,10 @@ static psx_cpu_step_result_t cpu_step_internal(psx_cpu_t *cpu, psx_memory_t *mem
         case 0x0du: return raise_exception(cpu, old_pc, PSX_EXC_BP); /* BREAK */
         case 0x04u: result = b << (a & 31u); if (rd) cpu->gpr[rd] = result; break; /* SLLV */
         case 0x06u: result = b >> (a & 31u); if (rd) cpu->gpr[rd] = result; break; /* SRLV */
-        case 0x07u: result = (uint32_t)(signed_b >> (a & 31u)); if (rd) cpu->gpr[rd] = result; break; /* SRAV */
+        case 0x07u: result = arithmetic_shift_right(b, a & 31u); if (rd) cpu->gpr[rd] = result; break; /* SRAV */
         case 0x00u: result = b << shamt; if (rd) cpu->gpr[rd] = result; break; /* SLL */
         case 0x02u: result = b >> shamt; if (rd) cpu->gpr[rd] = result; break; /* SRL */
-        case 0x03u: result = (uint32_t)(signed_b >> shamt); if (rd) cpu->gpr[rd] = result; break; /* SRA */
+        case 0x03u: result = arithmetic_shift_right(b, shamt); if (rd) cpu->gpr[rd] = result; break; /* SRA */
         case 0x08u: cpu->branch_delay_pending = 1u; cpu->branch_pc = old_pc; cpu->next_pc = a; break; /* JR */
         case 0x09u: if (rd) cpu->gpr[rd] = old_pc + 8u; cpu->branch_delay_pending = 1u; cpu->branch_pc = old_pc; cpu->next_pc = a; break; /* JALR */
         case 0x10u: if (rd) cpu->gpr[rd] = cpu->hi; break; /* MFHI */
