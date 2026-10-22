@@ -91,6 +91,10 @@ int main(void)
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
     assert(cpu.gpr[31] == 0u && cpu.next_pc == 8u);
 
+    /* Isolate the unsupported-opcode test from the prior branch delay slot. */
+    cpu.branch_delay_pending = 0u;
+    cpu.branch_pc = 0u;
+
     /* Unsupported opcodes stop without counting an instruction. */
     assert(psx_memory_write32(&memory, 44, 0xffffffffu));
     {
