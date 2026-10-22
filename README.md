@@ -2,10 +2,16 @@
 
 **Objetivo:** emulador de PlayStation (PS1) para Xbox 360 com RGH.
 
-- Versão de desenvolvimento: **v3.6.33b**
+- Versão de desenvolvimento: **v3.6.34b**
 - Alvo final: **`default.xex`**
 - Estado: CPU MIPS parcial, RAM de 2 MiB, interface de carregamento de BIOS de 512 KiB e camada inicial de dispositivos.
 - **Ainda não existe `default.xex` validado.**
+
+## Avanços v3.6.34b
+
+- CPU MIPS: `SRA` e `SRAV` agora usam deslocamento aritmético à direita com extensão de sinal explícita, evitando depender do comportamento de deslocamento de inteiros negativos do compilador hospedeiro.
+- Testes de CPU: adicionados casos para operandos negativos em `SRA` e `SRAV`.
+- Validação: a suíte de host passou no commit de código e testes `68e26091` (GitHub Actions run `39812333276`). Esta validação é de host; não comprova execução no Xbox 360 nem geração de `default.xex`.
 
 ## Avanços v3.6.33b
 
