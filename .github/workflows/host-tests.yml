@@ -21,11 +21,48 @@ permissions:
   contents: read
 
 jobs:
-  host-tests:
+  cpu:
+    name: CPU unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install compiler and make
         run: sudo apt-get update && sudo apt-get install -y build-essential
-      - name: Compile and run host tests
+      - name: Compile CPU tests
+        run: make build/test_cpu
+      - name: Run CPU tests
+        run: ./build/test_cpu
+
+  memory:
+    name: Memory unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install compiler and make
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+      - name: Compile memory tests
+        run: make build/test_memory
+      - name: Run memory tests
+        run: ./build/test_memory
+
+  hardware:
+    name: Bus and device tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install compiler and make
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+      - name: Compile bus tests
+        run: make build/test_bus
+      - name: Run bus tests
+        run: ./build/test_bus
+
+  integration:
+    name: Full system integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install compiler and make
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+      - name: Compile and run complete host suite
         run: make clean host-test
