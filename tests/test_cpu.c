@@ -236,6 +236,18 @@ int main(void)
     assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
     assert(cpu.gpr[3] == 1u);
 
+    /* SRA/SRAV must sign-extend negative operands on every host compiler. */
+    psx_cpu_reset(&cpu);
+    cpu.pc = 0u; cpu.next_pc = 4u;
+    cpu.gpr[1] = 0xfffffff0u;
+    cpu.gpr[3] = 3u;
+    assert(psx_memory_write32(&memory, 0u, r_type(0, 1, 2, 2, 0x03))); /* SRA v0,at,2 */
+    assert(psx_memory_write32(&memory, 4u, r_type(3, 1, 4, 0, 0x07))); /* SRAV a0,at,v1 */
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[2] == 0xfffffffcu);
+    assert(psx_cpu_step(&cpu, &memory) == PSX_CPU_STEP_OK);
+    assert(cpu.gpr[4] == 0xfffffffeu);
+
     /* Variable shifts and signed/unsigned division use HI/LO correctly. */
     psx_cpu_reset(&cpu);
     cpu.pc = 0u; cpu.next_pc = 4u;
