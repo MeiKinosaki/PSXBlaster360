@@ -7,6 +7,13 @@
 - Estado: CPU MIPS parcial, RAM de 2 MiB, interface de carregamento de BIOS de 512 KiB e camada inicial de dispositivos.
 - **Ainda não existe `default.xex` validado.**
 
+## Avanços v3.6.35b
+
+- DMA: a execução do canal 2 (RAM → GP0 da GPU) foi movida de `bus.c` para o módulo independente `src/core/dma.c`, com interface em `include/psx/dma.h`.
+- Testes DMA: criada `tests/test_dma.c` cobrindo canal desabilitado por DPCR, transferência manual de palavra, incremento/decremento de MADR e encerramento seguro de modo de sincronização ainda não suportado.
+- Build/CI: adicionado o alvo `build/test_dma` à suíte de host; execução GitHub Actions `40030561449` passou nos quatro trabalhos (CPU, memória, barramento/dispositivos e integração completa).
+- Escopo validado: testes de host aprovados; isso não comprova temporização fiel ao PS1, DMA completo em todos os canais, nem execução no Xbox 360. `default.xex` continua sem validação funcional.
+
 ## Avanços v3.6.34b
 
 - CPU MIPS: `SRA` e `SRAV` agora usam deslocamento aritmético à direita com extensão de sinal explícita, evitando depender do comportamento de deslocamento de inteiros negativos do compilador hospedeiro.
