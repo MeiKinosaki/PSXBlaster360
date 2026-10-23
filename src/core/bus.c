@@ -11,6 +11,8 @@
 #define DMA_BASE   0x1f801080u
 #define DPCR_ADDR  0x1f8010f0u
 #define DICR_ADDR  0x1f8010f4u
+#define DMA_IRQ_BIT(channel) (1u << (24u + (channel)))
+#define DMA_IRQ_ENABLE(channel) (1u << (16u + (channel)))
 #define GPU_GP0    0x1f801810u
 #define GPU_GP1    0x1f801814u
 
