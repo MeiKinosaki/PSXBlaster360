@@ -187,10 +187,24 @@ bool psx_bus_write32(psx_bus_t *bus, uint32_t address, uint32_t value)
     }
     if (address == DPCR_ADDR) { bus->dma_control = value; return true; }
     if (address == DICR_ADDR) {
-        /* Configuration bits are writable; completion flags are W1C. */
-        bus->dma_interrupt = (value & 0x00ffffffu) |
-                             (bus->dma_interrupt & 0x7f000000u & ~value) |
-                             (bus->dma_interrupt & 0x80000000u);
+        uint32_t flags;
+        uint32_t control;
+        uint32_t channel;
+        bool irq;
+        /* Bits 24-30 are write-one-to-clear; bit 31 is recomputed. */
+        flags = bus->dma_interrupt & 0x7f000000u & ~value;
+        control = value & 0x00ffffffu;
+        irq = (control & (1u << 15)) != 0u;
+        if ((control & (1u << 23)) != 0u) {
+            for (channel = 0u; channel < PSX_BUS_DMA_CHANNELS; ++channel) {
+                if ((control & DMA_IRQ_ENABLE(channel)) != 0u &&
+                    (flags & DMA_IRQ_BIT(channel)) != 0u) {
+                    irq = true;
+                    break;
+                }
+            }
+        }
+        bus->dma_interrupt = control | flags | (irq ? (1u << 31) : 0u);
         return true;
     }
     return bus->memory != NULL && psx_memory_write32(bus->memory, address, value);
