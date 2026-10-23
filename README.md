@@ -2,10 +2,18 @@
 
 **Objetivo:** emulador de PlayStation (PS1) para Xbox 360 com RGH.
 
-- Versão de desenvolvimento: **v3.6.34b**
+- Versão de desenvolvimento: **v3.6.36b**
 - Alvo final: **`default.xex`**
 - Estado: CPU MIPS parcial, RAM de 2 MiB, interface de carregamento de BIOS de 512 KiB e camada inicial de dispositivos.
 - **Ainda não existe `default.xex` validado.**
+
+## Avanços v3.6.36b
+
+- DMA/DICR: o bit mestre de interrupção (bit 31) agora é recalculado a partir do bit de força e das flags de conclusão ainda pendentes cujos canais e interrupção mestre estão habilitados.
+- Reconhecimento de interrupção: escrever 1 nas flags de conclusão (bits 24–30) limpa apenas as flags selecionadas; o estado da IRQ externa no I_STAT continua exigindo reconhecimento separado.
+- Testes: `tests/test_dma.c` verifica a conclusão de DMA2, o sinalizador mestre, a limpeza write-one-to-clear e o reconhecimento separado de I_STAT.
+- Validação: GitHub Actions run `40031168670` passou nos quatro trabalhos, incluindo compilação e execução da suíte completa de host.
+- Limite: isso valida o modelo implementado por testes de host, não comprova fidelidade completa ao hardware PS1 nem geração/execução de `default.xex` no Xbox 360 RGH.
 
 ## Avanços v3.6.35b
 
